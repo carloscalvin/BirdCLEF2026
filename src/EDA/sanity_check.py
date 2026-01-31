@@ -8,7 +8,7 @@ from src.configs.config import cfg
 from src.preprocessing import utils
 
 def run_sanity_check():
-    audio_dir = os.path.join(cfg.data_dir, "birdclef-2025", "train_audio", "blbgra1") 
+    audio_dir = os.path.join(cfg.train_audio_dir, "blbgra1") 
     file_path = utils.pick_random_file(audio_dir, extensions=['.ogg'])
 
     print(f"[*] File: {os.path.basename(file_path)}")
