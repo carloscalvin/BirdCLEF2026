@@ -94,18 +94,23 @@ def valid_one_epoch(model, loader, criterion, device):
     pbar = tqdm(loader, desc="Valid", leave=False)
     for images, labels in pbar:
         images, labels = images.to(device), labels.to(device)
-        
         outputs = model(images)
         loss = criterion(outputs, labels)
         running_loss += loss.item() * images.size(0)
-        probs = F.softmax(outputs, dim=1)
+        probs = F.softmax(outputs.float(), dim=1)
         all_preds.append(probs.cpu().numpy())
         all_targets.append(labels.cpu().numpy())
-        
     epoch_loss = running_loss / len(loader.dataset)
     all_preds = np.concatenate(all_preds)
     all_targets = np.concatenate(all_targets)
-    epoch_auc = roc_auc_score(all_targets, all_preds, multi_class='ovr', average='macro')
+    num_classes = all_preds.shape[1]
+    epoch_auc = roc_auc_score(
+        all_targets, 
+        all_preds, 
+        multi_class='ovr', 
+        average='macro',
+        labels=np.arange(num_classes)
+    )
 
     return epoch_loss, epoch_auc
 
