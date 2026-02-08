@@ -42,5 +42,8 @@ cfg.epochs = 50
 cfg.lr = 1e-3
 
 model_cfg = SimpleNamespace(**{})
-model_cfg.model_name = "BirdClefModel"
+model_cfg.model_name = "tf_efficientnet_b0_ns"
+model_cfg.pretrained = True
+model_cfg.num_classes = 0
+model_cfg.ema_decay = 0.999
 cfg.model_cfg = model_cfg

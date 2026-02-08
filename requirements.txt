@@ -5,3 +5,4 @@ matplotlib
 pytest
 albumentations
 albumentations.pytorch
+timm
