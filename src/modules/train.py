@@ -10,6 +10,8 @@ from torch.cuda.amp import autocast, GradScaler
 from sklearn.model_selection import StratifiedKFold
 import wandb
 from tqdm import tqdm
+import torch.nn.functional as F 
+from sklearn.metrics import roc_auc_score
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
@@ -86,8 +88,8 @@ def train_one_epoch(model, ema_model, loader, optimizer, scheduler, criterion, d
 def valid_one_epoch(model, loader, criterion, device):
     model.eval()
     running_loss = 0.0
-    correct = 0
-    total = 0
+    all_preds = []
+    all_targets = []
 
     pbar = tqdm(loader, desc="Valid", leave=False)
     for images, labels in pbar:
@@ -95,15 +97,17 @@ def valid_one_epoch(model, loader, criterion, device):
         
         outputs = model(images)
         loss = criterion(outputs, labels)
-        
         running_loss += loss.item() * images.size(0)
-        _, predicted = outputs.max(1)
-        total += labels.size(0)
-        correct += predicted.eq(labels).sum().item()
+        probs = F.softmax(outputs, dim=1)
+        all_preds.append(probs.cpu().numpy())
+        all_targets.append(labels.cpu().numpy())
         
-    epoch_loss = running_loss / total
-    epoch_acc = correct / total
-    return epoch_loss, epoch_acc
+    epoch_loss = running_loss / len(loader.dataset)
+    all_preds = np.concatenate(all_preds)
+    all_targets = np.concatenate(all_targets)
+    epoch_auc = roc_auc_score(all_targets, all_preds, multi_class='ovr', average='macro')
+
+    return epoch_loss, epoch_auc
 
 def run_fold(fold, df, train_files, val_files):
     print(f"\n--- Iniciando Fold: {fold+1}/{cfg.n_folds} ---")
@@ -169,33 +173,33 @@ def run_fold(fold, df, train_files, val_files):
         reinit=True
     )
     
-    best_acc = 0.0
+    best_auc = 0.0
 
     for epoch in range(cfg.epochs):
         train_loss, train_acc = train_one_epoch(
             model, ema_model, train_loader, optimizer, scheduler, criterion, cfg.device, scaler
         )
 
-        val_loss, val_acc = valid_one_epoch(ema_model.module, val_loader, criterion, cfg.device)
-        
-        print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} Acc: {train_acc:.4f} | Val (EMA) Loss: {val_loss:.4f} Acc: {val_acc:.4f}")
-        
+        val_loss, val_auc = valid_one_epoch(ema_model.module, val_loader, criterion, cfg.device)
+
+        print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} Acc: {train_acc:.4f} | Val Loss: {val_loss:.4f} AUC: {val_auc:.4f}")
+
         wandb.log({
             "epoch": epoch+1,
             "train_loss": train_loss,
             "train_acc": train_acc,
             "val_loss": val_loss,
-            "val_acc": val_acc,
+            "val_auc": val_auc,
             "lr": scheduler.get_last_lr()[0]
         })
 
-        if val_acc > best_acc:
-            best_acc = val_acc
+        if val_auc > best_auc:
+            best_auc = val_auc
             save_name = f"{cfg.model_cfg.model_name}_fold{fold+1}_best.pth"
             os.makedirs(cfg.output_dir, exist_ok=True)
             save_path = os.path.join(cfg.output_dir, save_name)
             torch.save(ema_model.module.state_dict(), save_path)
-            print(f" [S] Mejor modelo guardado (Acc: {best_acc:.4f})")
+            print(f" [S] Mejor modelo guardado (AUC: {best_auc:.4f})")
             
     wandb.finish()
 
@@ -203,7 +207,7 @@ def run_fold(fold, df, train_files, val_files):
     torch.cuda.empty_cache()
     gc.collect()
     
-    return best_acc
+    return best_auc
 
 if __name__ == "__main__":
     wandb.login()

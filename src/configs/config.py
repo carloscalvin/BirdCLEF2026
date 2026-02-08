@@ -45,8 +45,8 @@ cfg.weight_decay = 1e-4
 cfg.max_grad_norm = 1.0
 cfg.use_amp = True
 
-cfg.mixup_prob = 0.5
-cfg.cutmix_prob = 0.5
+cfg.mixup_prob = 0.0
+cfg.cutmix_prob = 0.0
 cfg.mixup_alpha = 1.0
 
 model_cfg = SimpleNamespace(**{})
