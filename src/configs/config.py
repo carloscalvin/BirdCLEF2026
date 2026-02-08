@@ -38,6 +38,7 @@ os.makedirs(cfg.preprocess_train_dir, exist_ok=True)
 
 cfg.batch_size = 64
 cfg.epochs = 25
+cfg.n_folds = 5
 cfg.lr = 1e-3
 cfg.min_lr = 1e-6
 cfg.weight_decay = 1e-4
