@@ -6,3 +6,4 @@ pytest
 albumentations
 albumentations.pytorch
 timm
+wandb

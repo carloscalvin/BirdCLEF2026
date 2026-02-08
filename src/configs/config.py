@@ -5,6 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
+cfg.exp_name = "tf_efficientnet_b0_ns_gem_baseline"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -35,11 +36,17 @@ cfg.hop_length = 512
 cfg.preprocess_train_dir = os.path.join(cfg.data_dir, "train_specs")
 os.makedirs(cfg.preprocess_train_dir, exist_ok=True)
 
-cfg.fold = 0
-cfg.n_folds = 5
 cfg.batch_size = 64
-cfg.epochs = 50
+cfg.epochs = 25
 cfg.lr = 1e-3
+cfg.min_lr = 1e-6
+cfg.weight_decay = 1e-4
+cfg.max_grad_norm = 1.0
+cfg.use_amp = True
+
+cfg.mixup_prob = 0.5
+cfg.cutmix_prob = 0.5
+cfg.mixup_alpha = 1.0
 
 model_cfg = SimpleNamespace(**{})
 model_cfg.model_name = "tf_efficientnet_b0_ns"
