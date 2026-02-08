@@ -12,6 +12,12 @@ import wandb
 from tqdm import tqdm
 import torch.nn.functional as F 
 from sklearn.metrics import roc_auc_score
+import warnings
+from sklearn.exceptions import UndefinedMetricWarning
+
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=UserWarning)
+warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
@@ -49,7 +55,7 @@ def train_one_epoch(model, ema_model, loader, optimizer, scheduler, criterion, d
 
         images, target_a, target_b, lam, type = augmenter(images, labels)
         
-        with autocast(enabled=cfg.use_amp):
+        with torch.amp.autocast(device_type="cuda", enabled=cfg.use_amp):
             outputs = model(images)
             
             if type != 'none':
