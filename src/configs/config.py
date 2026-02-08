@@ -23,8 +23,17 @@ cfg.train_csv_path = os.path.join(cfg.dataset_root, "train.csv")
 cfg.taxonomy_csv_path = os.path.join(cfg.dataset_root, "taxonomy.csv")
 cfg.sample_submission_path = os.path.join(cfg.dataset_root, "sample_submission.csv")
 
-cfg.train_preprocessed_dir = f"{cfg.data_dir}Train/preprocessed/"
 cfg.output_dir = "outputs/"
+cfg.sr = 32000
+cfg.duration = 5
+cfg.n_mels = 128
+cfg.fmin = 20
+cfg.fmax = 16000
+cfg.n_fft = 2048
+cfg.hop_length = 512
+
+cfg.preprocess_train_dir = os.path.join(cfg.data_dir, "train_specs")
+os.makedirs(cfg.preprocess_train_dir, exist_ok=True)
 
 cfg.fold = 0
 cfg.n_folds = 5
