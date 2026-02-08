@@ -111,15 +111,21 @@ def valid_one_epoch(model, loader, criterion, device):
     epoch_loss = running_loss / len(loader.dataset)
     all_preds = np.concatenate(all_preds)
     all_targets = np.concatenate(all_targets)
-    present_classes = np.unique(all_targets)
 
-    epoch_auc = roc_auc_score(
-        all_targets, 
-        all_preds, 
-        multi_class='ovr', 
-        average='macro',
-        labels=present_classes
-    )
+    present_classes = np.unique(all_targets)
+    aucs = []
+
+    if len(present_classes) < 2:
+        epoch_auc = 0.5
+    else:
+        for cls in present_classes:
+            binary_target = (all_targets == cls).astype(int)
+            prob_cls = all_preds[:, cls]
+            score = roc_auc_score(binary_target, prob_cls)
+            aucs.append(score)
+        
+        epoch_auc = np.mean(aucs) if len(aucs) > 0 else 0.5
+
     return epoch_loss, epoch_auc
 
 def run_fold(fold, df, train_files, val_files):
