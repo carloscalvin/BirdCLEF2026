@@ -5,21 +5,25 @@ import numpy as np
 from torch.utils.data import Dataset
 
 class BirdDataset(Dataset):
-    def __init__(self, df, root_dir, transform=None, mode='train'):
+    def __init__(self, df, root_dir, transform=None, mode='train', class_names=None):
         self.root_dir = root_dir
         self.transform = transform
         self.mode = mode
-        self.unique_labels = sorted(df['primary_label'].unique())
-        self.class_to_idx = {label: idx for idx, label in enumerate(self.unique_labels)}
+        
+        self.class_names = class_names
+        self.class_to_idx = {label: idx for idx, label in enumerate(self.class_names)}
+        self.num_classes = len(self.class_names)
 
         if self.mode == 'train':
+            df = df[df['primary_label'].isin(self.class_names)].reset_index(drop=True)
             self.file_to_chunks = df.groupby('filename')['chunk_name'].apply(list).to_dict()
             self.file_names = list(self.file_to_chunks.keys())
             self.file_to_label = df.drop_duplicates('filename').set_index('filename')['primary_label'].to_dict()
-            print(f"[{mode.upper()}] Dataset agrupado por Archivo. Length: {len(self.file_names)}")
+            print(f"[TRAIN] Dataset cargado. {len(self.file_names)} archivos únicos. {self.num_classes} clases.")
+
         else:
             self.df = df
-            print(f"[{mode.upper()}] Dataset plano (todos los chunks). Length: {len(self.df)}")
+            print(f"[VALID] Dataset cargado. {len(self.df)} muestras de soundscape.")
 
     def __len__(self):
         if self.mode == 'train':
@@ -32,16 +36,24 @@ class BirdDataset(Dataset):
             orig_filename = self.file_names[idx]
             chunk_list = self.file_to_chunks[orig_filename]
             chunk_name = np.random.choice(chunk_list)
+
             label_str = self.file_to_label[orig_filename]
+
+            target = np.zeros(self.num_classes, dtype=np.float32)
+            if label_str in self.class_to_idx:
+                cls_idx = self.class_to_idx[label_str]
+                target[cls_idx] = 1.0
+            
         else:
             row = self.df.iloc[idx]
             chunk_name = row['chunk_name']
-            label_str = row['primary_label']
+            target = row['targets']
+            if not isinstance(target, np.ndarray):
+                target = np.array(target)
+            target = target.astype(np.float32)
 
         file_path = os.path.join(self.root_dir, chunk_name)
         image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-        if image is None:
-            raise FileNotFoundError(f"No se pudo cargar la imagen: {file_path}")
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
 
         if self.transform:
@@ -51,7 +63,4 @@ class BirdDataset(Dataset):
             image = image.astype(np.float32) / 255.0
             image = torch.tensor(image).permute(2, 0, 1)
 
-        label = self.class_to_idx[label_str]
-        label = torch.tensor(label, dtype=torch.long)
-        
-        return image, label
+        return image, torch.tensor(target, dtype=torch.float32)
