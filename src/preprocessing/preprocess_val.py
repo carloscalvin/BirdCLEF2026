@@ -38,7 +38,7 @@ def preprocess_validation():
             parts = row_id.rsplit('_', 1)
             base_filename = parts[0]
             end_seconds = int(parts[1])
-            start_seconds = end_seconds
+            start_seconds = max(0, end_seconds - cfg.duration)
             audio_filename = base_filename + ".ogg"
             audio_path = os.path.join(cfg.train_soundscapes_dir, audio_filename)
             
