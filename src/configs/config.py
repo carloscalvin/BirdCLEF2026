@@ -23,6 +23,9 @@ cfg.test_soundscapes_dir = os.path.join(cfg.dataset_root, "test_soundscapes")
 cfg.train_csv_path = os.path.join(cfg.dataset_root, "train.csv")
 cfg.taxonomy_csv_path = os.path.join(cfg.dataset_root, "taxonomy.csv")
 cfg.sample_submission_path = os.path.join(cfg.dataset_root, "sample_submission.csv")
+cfg.teacher_preds_path = os.path.join(cfg.dataset_root, "val_soundscape.csv")
+cfg.classes_order_path = os.path.join(cfg.dataset_root, "classes_order.csv")
+cfg.val_processed_path = os.path.join(cfg.dataset_root, "val_processed.pkl")
 
 cfg.output_dir = "outputs/"
 cfg.sr = 32000
@@ -35,6 +38,8 @@ cfg.hop_length = 512
 
 cfg.preprocess_train_dir = os.path.join(cfg.data_dir, "train_specs")
 os.makedirs(cfg.preprocess_train_dir, exist_ok=True)
+cfg.preprocess_val_dir = os.path.join(cfg.data_dir, "val_soundscape_specs")
+os.makedirs(cfg.preprocess_val_dir, exist_ok=True)
 
 cfg.batch_size = 64
 cfg.epochs = 25
