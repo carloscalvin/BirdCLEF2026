@@ -8,7 +8,6 @@ from torch.utils.data import DataLoader
 from torch.cuda.amp import GradScaler
 import wandb
 from tqdm import tqdm
-from src.modules.metrics import macro_auc
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
 
@@ -22,6 +21,7 @@ from src.configs.config import cfg
 from src.data.dataset import BirdDataset
 from src.data.transforms import get_transforms
 from src.models.model import BirdModel, ModelEMA
+from src.modules.metrics import macro_auc
 
 def seed_everything(seed=42):
     os.environ['PYTHONHASHSEED'] = str(seed)
