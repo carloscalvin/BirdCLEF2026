@@ -56,6 +56,10 @@ class BirdDataset(Dataset):
         image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
 
+        # TODO review val preprocess
+        if image.shape[1] != 313 or image.shape[0] != 128:
+            image = cv2.resize(image, (313, 128))
+
         if self.transform:
             augmented = self.transform(image=image)
             image = augmented['image']
