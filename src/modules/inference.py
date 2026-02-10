@@ -21,12 +21,14 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 
 from src.configs.config import cfg
 from src.models.model import BirdModel
+from src.data.transforms import get_transforms
 
 class TestDataset(Dataset):
     def __init__(self, audio_files, sr=32000, duration=5):
         self.audio_files = audio_files
         self.sr = sr
         self.duration = duration
+        self.transform = get_transforms('valid')
         self.data = []
 
         for file_path in self.audio_files:
@@ -62,10 +64,12 @@ class TestDataset(Dataset):
         melspec = melspec / (melspec.max() + 1e-6)
         melspec = (melspec * 255).astype(np.uint8)
         melspec = np.flip(melspec, axis=0)
+
         return melspec
 
     def __getitem__(self, idx):
         item = self.data[idx]
+
         y, _ = librosa.load(
             item['file_path'], 
             sr=self.sr, 
@@ -76,15 +80,15 @@ class TestDataset(Dataset):
         target_len = self.sr * self.duration
         if len(y) < target_len:
             y = np.pad(y, (0, target_len - len(y)))
+
         spec = self.compute_melspec(y)
-        img = cv2.cvtColor(spec, cv2.COLOR_GRAY2RGB)
-        img = img.astype(np.float32) / 255.0
-        mean = np.array([0.485, 0.456, 0.406])
-        std = np.array([0.229, 0.224, 0.225])
-        img = (img - mean) / std
-        img = torch.tensor(img).permute(2, 0, 1).float()
-        
-        return img, item['row_id']
+        image = cv2.cvtColor(spec, cv2.COLOR_GRAY2RGB)
+
+        if self.transform:
+            augmented = self.transform(image=image)
+            image = augmented['image']
+            
+        return image, item['row_id']
 
 def run_inference(weights_path, clasess_path, files_path):
     print(f"[*] Buscando archivos en: {files_path}")
