@@ -52,6 +52,9 @@ cfg.mixup_prob = 0.0
 cfg.cutmix_prob = 0.0
 cfg.mixup_alpha = 1.0
 
+cfg.use_ram_cache = True
+cfg.num_cache_workers = 8
+
 model_cfg = SimpleNamespace(**{})
 model_cfg.model_name = "tf_efficientnet_b0_ns"
 model_cfg.pretrained = True

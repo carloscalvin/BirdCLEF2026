@@ -4,6 +4,8 @@ import torch
 import librosa
 import numpy as np
 from torch.utils.data import Dataset
+from concurrent.futures import ThreadPoolExecutor
+from tqdm import tqdm
 from src.configs.config import cfg
 
 class BirdDataset(Dataset):
@@ -13,6 +15,8 @@ class BirdDataset(Dataset):
         self.transform = transform
         self.mode = mode
         self.class_names = class_names
+        self.use_cache = cfg.use_ram_cache and (mode == 'train')
+        self.audio_cache = {}
         
         if self.class_names:
             self.class_to_idx = {label: idx for idx, label in enumerate(self.class_names)}
@@ -23,6 +27,8 @@ class BirdDataset(Dataset):
             self.file_to_label = self.df.set_index('filename')['primary_label'].to_dict()
             self.file_paths = self.df['filename'].tolist()
             print(f"[TRAIN] Dataset 'On-the-Fly' cargado. {len(self.file_paths)} archivos de audio.")
+            if self.use_cache:
+                self.cache_all_audio()
         else:
             print(f"[VALID] Dataset pre-procesado cargado. {len(self.df)} muestras de soundscape.")
 
@@ -44,12 +50,28 @@ class BirdDataset(Dataset):
         melspec = np.flip(melspec, axis=0)
         return melspec
 
-    def load_and_crop_audio(self, file_path):
-        try:
-            y, _ = librosa.load(file_path, sr=cfg.sr)
-        except Exception as e:
-            print(f"Error cargando {file_path}: {e}")
-            return np.zeros(cfg.sr * cfg.duration, dtype=np.float32)
+    def cache_all_audio(self):
+        def load_single_file(filename):
+            path = os.path.join(self.root_dir, filename)
+            y, _ = librosa.load(path, sr=cfg.sr)
+            return filename, y.astype(np.float32)
+        with ThreadPoolExecutor(max_workers=cfg.num_cache_workers) as executor:
+            results = list(tqdm(executor.map(load_single_file, self.file_paths), total=len(self.file_paths), unit="files"))
+        for filename, audio_data in results:
+            self.audio_cache[filename] = audio_data
+        print(f"[CACHE] Carga completada. {len(self.audio_cache)} archivos en memoria.\n")
+
+    def load_and_crop_audio(self, filename):
+        if self.use_cache:
+            y = self.audio_cache[filename]
+        else:
+            file_path = os.path.join(self.root_dir, filename)
+            try:
+                y, _ = librosa.load(file_path, sr=cfg.sr)
+                y = y.astype(np.float32)
+            except Exception as e:
+                print(f"Error cargando {file_path}: {e}")
+                raise
 
         target_len = cfg.sr * cfg.duration
         
@@ -66,9 +88,8 @@ class BirdDataset(Dataset):
     def __getitem__(self, idx):
         if self.mode == 'train':
             filename = self.file_paths[idx]
-            file_path = os.path.join(self.root_dir, filename)
             label_str = self.file_to_label[filename]
-            y = self.load_and_crop_audio(file_path)
+            y = self.load_and_crop_audio(filename)
             image_gray = self.compute_melspec(y)
             image = cv2.cvtColor(image_gray, cv2.COLOR_GRAY2RGB)
             target = np.zeros(self.num_classes, dtype=np.float32)
