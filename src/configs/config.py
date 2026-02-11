@@ -5,8 +5,8 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
-cfg.exp_name = "tf_efficientnet_b0_ns_gem_run1"
-cfg.num_workers = 0
+cfg.exp_name = "tf_efficientnet_b0_ns_gem_run2_on_the_fly"
+cfg.num_workers = 4
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
 cfg.fast_dev_run = False
@@ -36,8 +36,6 @@ cfg.fmax = 16000
 cfg.n_fft = 2048
 cfg.hop_length = 512
 
-cfg.preprocess_train_dir = os.path.join(cfg.data_dir, "train_specs")
-os.makedirs(cfg.preprocess_train_dir, exist_ok=True)
 cfg.preprocess_val_dir = os.path.join(cfg.data_dir, "val_soundscape_specs")
 os.makedirs(cfg.preprocess_val_dir, exist_ok=True)
 

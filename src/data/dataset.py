@@ -1,44 +1,76 @@
 import os
 import cv2
 import torch
+import librosa
 import numpy as np
 from torch.utils.data import Dataset
+from src.configs.config import cfg
 
 class BirdDataset(Dataset):
     def __init__(self, df, root_dir, transform=None, mode='train', class_names=None):
+        self.df = df
         self.root_dir = root_dir
         self.transform = transform
         self.mode = mode
-        
         self.class_names = class_names
-        self.class_to_idx = {label: idx for idx, label in enumerate(self.class_names)}
-        self.num_classes = len(self.class_names)
+        
+        if self.class_names:
+            self.class_to_idx = {label: idx for idx, label in enumerate(self.class_names)}
+            self.num_classes = len(self.class_names)
 
         if self.mode == 'train':
-            df = df[df['primary_label'].isin(self.class_names)].reset_index(drop=True)
-            self.file_to_chunks = df.groupby('filename')['chunk_name'].apply(list).to_dict()
-            self.file_names = list(self.file_to_chunks.keys())
-            self.file_to_label = df.drop_duplicates('filename').set_index('filename')['primary_label'].to_dict()
-            print(f"[TRAIN] Dataset cargado. {len(self.file_names)} archivos únicos. {self.num_classes} clases.")
-
+            self.df = self.df[self.df['primary_label'].isin(self.class_names)].reset_index(drop=True)
+            self.file_to_label = self.df.set_index('filename')['primary_label'].to_dict()
+            self.file_paths = self.df['filename'].tolist()
+            print(f"[TRAIN] Dataset 'On-the-Fly' cargado. {len(self.file_paths)} archivos de audio.")
         else:
-            self.df = df
-            print(f"[VALID] Dataset cargado. {len(self.df)} muestras de soundscape.")
+            print(f"[VALID] Dataset pre-procesado cargado. {len(self.df)} muestras de soundscape.")
 
     def __len__(self):
         if self.mode == 'train':
-            return len(self.file_names)
+            return len(self.file_paths)
         else:
             return len(self.df)
 
+    def compute_melspec(self, y):
+        melspec = librosa.feature.melspectrogram(
+            y=y, sr=cfg.sr, n_mels=cfg.n_mels, fmin=cfg.fmin, fmax=cfg.fmax,
+            n_fft=cfg.n_fft, hop_length=cfg.hop_length
+        )
+        melspec = librosa.power_to_db(melspec, ref=np.max)
+        melspec = melspec - melspec.min()
+        melspec = melspec / (melspec.max() + 1e-6)
+        melspec = (melspec * 255).astype(np.uint8)
+        melspec = np.flip(melspec, axis=0)
+        return melspec
+
+    def load_and_crop_audio(self, file_path):
+        try:
+            y, _ = librosa.load(file_path, sr=cfg.sr)
+        except Exception as e:
+            print(f"Error cargando {file_path}: {e}")
+            return np.zeros(cfg.sr * cfg.duration, dtype=np.float32)
+
+        target_len = cfg.sr * cfg.duration
+        
+        if len(y) < target_len:
+            padding = target_len - len(y)
+            offset = padding // 2
+            y = np.pad(y, (offset, target_len - len(y) - offset), 'constant')
+        elif len(y) > target_len:
+            start = np.random.randint(0, len(y) - target_len)
+            y = y[start : start + target_len]
+
+        return y.astype(np.float32)
+
     def __getitem__(self, idx):
         if self.mode == 'train':
-            orig_filename = self.file_names[idx]
-            chunk_list = self.file_to_chunks[orig_filename]
-            chunk_name = np.random.choice(chunk_list)
-
-            label_str = self.file_to_label[orig_filename]
-
+            filename = self.file_paths[idx]
+            file_path = os.path.join(self.root_dir, filename)
+            label_str = self.file_to_label[filename]
+            y = self.load_and_crop_audio(file_path)
+            image_gray = self.compute_melspec(y)
+            image = cv2.cvtColor(image_gray, cv2.COLOR_GRAY2RGB)
             target = np.zeros(self.num_classes, dtype=np.float32)
             if label_str in self.class_to_idx:
                 cls_idx = self.class_to_idx[label_str]
@@ -51,10 +83,9 @@ class BirdDataset(Dataset):
             if not isinstance(target, np.ndarray):
                 target = np.array(target)
             target = target.astype(np.float32)
-
-        file_path = os.path.join(self.root_dir, chunk_name)
-        image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+            file_path = os.path.join(self.root_dir, chunk_name)
+            image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+            image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
 
         if self.transform:
             augmented = self.transform(image=image)
