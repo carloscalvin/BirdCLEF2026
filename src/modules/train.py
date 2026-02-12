@@ -10,7 +10,6 @@ import wandb
 from tqdm import tqdm
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
-from src.modules.losses import BCEFocalLoss
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -23,6 +22,7 @@ from src.data.dataset import BirdDataset
 from src.data.transforms import get_transforms
 from src.models.model import BirdModel, ModelEMA
 from src.modules.metrics import macro_auc
+from src.modules.losses import BCEFocalLoss
 
 def seed_everything(seed=42):
     os.environ['PYTHONHASHSEED'] = str(seed)
