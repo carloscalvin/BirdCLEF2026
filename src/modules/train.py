@@ -10,6 +10,7 @@ import wandb
 from tqdm import tqdm
 import warnings
 from sklearn.exceptions import UndefinedMetricWarning
+from src.modules.losses import BCEFocalLoss
 
 warnings.filterwarnings("ignore", category=FutureWarning)
 warnings.filterwarnings("ignore", category=UserWarning)
@@ -147,13 +148,14 @@ def run_training():
     ema_model.set(model)
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
-    criterion = nn.BCEWithLogitsLoss()
+    print(f"Usando Focal Loss (Gamma={cfg.loss_gamma:.4f}, Alpha={cfg.loss_alpha:.4f})")
+    criterion = BCEFocalLoss(alpha=cfg.loss_alpha, gamma=cfg.loss_gamma)
     scaler = GradScaler(enabled=cfg.use_amp)
     total_steps = len(train_loader) * cfg.epochs
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_steps, eta_min=cfg.min_lr)
 
     wandb.init(
-        project=cfg.project_name, 
+        project=cfg.project_name,
         name=cfg.exp_name,
         config=cfg.__dict__
     )
