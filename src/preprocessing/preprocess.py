@@ -28,37 +28,43 @@ def process_audio_file(row):
     label = row['primary_label']
     filename_base = row['filename'].replace('/', '_').replace('.ogg', '')
     new_rows = []
+
     try:
-        y, sr = librosa.load(file_path, sr=cfg.sr)
-        samples_per_chunk = cfg.sr * cfg.duration
+        y, _ = librosa.load(file_path, sr=cfg.sr)
         total_samples = len(y)
+        samples_per_chunk = int(cfg.sr * cfg.duration)
+        samples_step = int(cfg.sr * cfg.step)
+        chunks = []
+
         if total_samples < samples_per_chunk:
-            y = np.pad(y, (0, samples_per_chunk - total_samples))
-            chunks = [y]
+            y_padded = np.pad(y, (0, samples_per_chunk - total_samples))
+            chunks.append((y_padded, 0))
+
         else:
-            num_chunks = int(np.ceil(total_samples / samples_per_chunk))
-            chunks = []
-            for i in range(num_chunks):
-                start = i * samples_per_chunk
+            chunk_idx = 0
+            for start in range(0, total_samples - samples_per_chunk + 1, samples_step):
                 end = start + samples_per_chunk
                 chunk = y[start:end]
-                if len(chunk) < samples_per_chunk:
-                    chunk = np.pad(chunk, (0, samples_per_chunk - len(chunk)))
-                chunks.append(chunk)
-        for i, chunk in enumerate(chunks):
-            spec_img = compute_melspec(chunk, cfg.sr)
-            save_name = f"{filename_base}_chunk{i}.png"
+                chunks.append((chunk, chunk_idx))
+                chunk_idx += 1
+
+        for chunk_audio, idx in chunks:
+            spec_img = compute_melspec(chunk_audio, cfg.sr)
+            save_name = f"{filename_base}_chunk{idx}.png"
             save_path = os.path.join(cfg.preprocess_train_dir, save_name)
+
             cv2.imwrite(save_path, spec_img)
+
             new_rows.append({
                 'filename': row['filename'],
                 'chunk_name': save_name,
                 'primary_label': label,
-                'chunk_index': i
+                'chunk_index': idx
             })
     except Exception as e:
         print(f"Error procesando {file_path}: {e}")
         return []
+        
     return new_rows
 
 def run_preprocessing():

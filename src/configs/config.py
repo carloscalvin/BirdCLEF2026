@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
-cfg.exp_name = "tf_efficientnet_b0_ns_gem_run1"
+cfg.exp_name = "tf_efficientnet_b0_ns_sliding_window_run3"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -30,6 +30,7 @@ cfg.val_processed_path = os.path.join(cfg.dataset_root, "val_processed.pkl")
 cfg.output_dir = "outputs/"
 cfg.sr = 32000
 cfg.duration = 5
+cfg.step = 1
 cfg.n_mels = 128
 cfg.fmin = 20
 cfg.fmax = 16000
