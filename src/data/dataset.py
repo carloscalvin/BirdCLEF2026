@@ -2,6 +2,7 @@ import os
 import cv2
 import torch
 import numpy as np
+import ast
 from torch.utils.data import Dataset
 
 class BirdDataset(Dataset):
@@ -19,6 +20,11 @@ class BirdDataset(Dataset):
             self.file_to_chunks = df.groupby('filename')['chunk_name'].apply(list).to_dict()
             self.file_names = list(self.file_to_chunks.keys())
             self.file_to_label = df.drop_duplicates('filename').set_index('filename')['primary_label'].to_dict()
+            self.file_to_secondary = {}
+            temp_df = df.drop_duplicates('filename').set_index('filename')
+            for fname, row in temp_df.iterrows():
+                labels = ast.literal_eval(row.get('secondary_labels'))
+                self.file_to_secondary[fname] = [l for l in labels if l]
             print(f"[TRAIN] Dataset cargado. {len(self.file_names)} archivos únicos. {self.num_classes} clases.")
 
         else:
@@ -40,10 +46,14 @@ class BirdDataset(Dataset):
             label_str = self.file_to_label[orig_filename]
 
             target = np.zeros(self.num_classes, dtype=np.float32)
-            if label_str in self.class_to_idx:
-                cls_idx = self.class_to_idx[label_str]
-                target[cls_idx] = 1.0
-            
+            cls_idx = self.class_to_idx[label_str]
+            target[cls_idx] = 1.0
+
+            sec_labels = self.file_to_secondary.get(orig_filename)
+            for s_label in sec_labels:
+                s_idx = self.class_to_idx[s_label]
+                target[s_idx] = 1.0
+
         else:
             row = self.df.iloc[idx]
             chunk_name = row['chunk_name']

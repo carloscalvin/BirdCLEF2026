@@ -26,6 +26,7 @@ def compute_melspec(y, sr):
 def process_audio_file(row):
     file_path = os.path.join(cfg.train_audio_dir, row['filename'])
     label = row['primary_label']
+    sec_labels = row.get('secondary_labels')
     filename_base = row['filename'].replace('/', '_').replace('.ogg', '')
     new_rows = []
 
@@ -59,6 +60,7 @@ def process_audio_file(row):
                 'filename': row['filename'],
                 'chunk_name': save_name,
                 'primary_label': label,
+                'secondary_labels': sec_labels,
                 'chunk_index': idx
             })
     except Exception as e:
