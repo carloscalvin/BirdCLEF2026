@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
-cfg.exp_name = "convnextv2_femto.fcmae_gaussian_noise_run8"
+cfg.exp_name = "tf_efficientnet_b2_ns_gaussian_noise_run8"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -65,7 +65,7 @@ cfg.gaussian_noise_prob = 0.5
 cfg.gaussian_noise_limit = (10, 50)
 
 model_cfg = SimpleNamespace(**{})
-model_cfg.model_name = "convnextv2_femto.fcmae"
+model_cfg.model_name = "tf_efficientnet_b2_ns"
 model_cfg.pretrained = True
 model_cfg.num_classes = 0
 model_cfg.ema_decay = 0.999
