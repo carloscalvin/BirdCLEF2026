@@ -1,12 +1,11 @@
 import os
-import cv2
 import torch
 import numpy as np
 import ast
 from torch.utils.data import Dataset
 
 class BirdDataset(Dataset):
-    def __init__(self, df, root_dir, transform=None, mode='train', class_names=None):
+    def __init__(self, df, root_dir, transform, mode='train', class_names=None):
         self.root_dir = root_dir
         self.transform = transform
         self.mode = mode
@@ -63,14 +62,10 @@ class BirdDataset(Dataset):
             target = target.astype(np.float32)
 
         file_path = os.path.join(self.root_dir, chunk_name)
-        image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        spec_arr = np.load(file_path)
+        spec_arr = spec_arr[:, :, np.newaxis]
 
-        if self.transform:
-            augmented = self.transform(image=image)
-            image = augmented['image']
-        else:
-            image = image.astype(np.float32) / 255.0
-            image = torch.tensor(image).permute(2, 0, 1)
+        augmented = self.transform(image=spec_arr)
+        image = augmented['image']
 
         return image, torch.tensor(target, dtype=torch.float32)

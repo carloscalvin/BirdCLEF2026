@@ -6,7 +6,6 @@ import numpy as np
 import pandas as pd
 import torch
 import librosa
-import cv2
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
@@ -22,6 +21,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from src.configs.config import cfg
 from src.models.model import BirdModel
 from src.data.transforms import get_transforms
+from src.preprocessing.preprocess import compute_melspec
 
 class TestDataset(Dataset):
     def __init__(self, audio_files, sr=32000, duration=5):
@@ -54,19 +54,6 @@ class TestDataset(Dataset):
     def __len__(self):
         return len(self.data)
 
-    def compute_melspec(self, y):
-        melspec = librosa.feature.melspectrogram(
-            y=y, sr=self.sr, n_mels=cfg.n_mels, fmin=cfg.fmin, fmax=cfg.fmax,
-            n_fft=cfg.n_fft, hop_length=cfg.hop_length
-        )
-        melspec = librosa.power_to_db(melspec, ref=np.max)
-        melspec = melspec - melspec.min()
-        melspec = melspec / (melspec.max() + 1e-6)
-        melspec = (melspec * 255).astype(np.uint8)
-        melspec = np.flip(melspec, axis=0)
-
-        return melspec
-
     def __getitem__(self, idx):
         item = self.data[idx]
 
@@ -81,13 +68,11 @@ class TestDataset(Dataset):
         if len(y) < target_len:
             y = np.pad(y, (0, target_len - len(y)))
 
-        spec = self.compute_melspec(y)
-        image = cv2.cvtColor(spec, cv2.COLOR_GRAY2RGB)
+        spec_arr = compute_melspec(y, cfg.sr)
+        spec_arr = spec_arr[:, :, np.newaxis]
+        augmented = self.transform(image=spec_arr)
+        image = augmented['image']
 
-        if self.transform:
-            augmented = self.transform(image=image)
-            image = augmented['image']
-            
         return image, item['row_id']
 
 def run_inference(weights_path, clasess_path, files_path):

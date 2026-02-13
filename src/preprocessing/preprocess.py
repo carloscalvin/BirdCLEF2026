@@ -17,11 +17,8 @@ def compute_melspec(y, sr):
         n_fft=cfg.n_fft, hop_length=cfg.hop_length
     )
     melspec = librosa.power_to_db(melspec, ref=np.max)
-    melspec = melspec - melspec.min()
-    melspec = melspec / (melspec.max() + 1e-6)
-    melspec = (melspec * 255).astype(np.uint8)
-    melspec = np.flip(melspec, axis=0)
-    return melspec
+
+    return melspec.astype(np.float32)
 
 def process_audio_file(row):
     file_path = os.path.join(cfg.train_audio_dir, row['filename'])
@@ -50,11 +47,11 @@ def process_audio_file(row):
                 chunk_idx += 1
 
         for chunk_audio, idx in chunks:
-            spec_img = compute_melspec(chunk_audio, cfg.sr)
-            save_name = f"{filename_base}_chunk{idx}.png"
+            spec_arr = compute_melspec(chunk_audio, cfg.sr)
+            save_name = f"{filename_base}_chunk{idx}.npy"
             save_path = os.path.join(cfg.preprocess_train_dir, save_name)
 
-            cv2.imwrite(save_path, spec_img)
+            np.save(save_path, spec_arr)
 
             new_rows.append({
                 'filename': row['filename'],

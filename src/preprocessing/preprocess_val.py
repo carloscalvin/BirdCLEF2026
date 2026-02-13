@@ -54,11 +54,11 @@ def preprocess_validation():
 
         try:
             y, _ = librosa.load(audio_path, sr=cfg.sr, offset=start_seconds, duration=cfg.duration)
-            spec = compute_melspec(y, cfg.sr)
+            spec_arr = compute_melspec(y, cfg.sr)
 
-            save_name = row_id + ".png"
+            save_name = row_id + ".npy"
             save_path = os.path.join(cfg.preprocess_val_dir, save_name)
-            cv2.imwrite(save_path, spec)
+            np.save(save_path, spec_arr)
 
             soft_targets = row[class_cols].values.astype(np.float32)
             
