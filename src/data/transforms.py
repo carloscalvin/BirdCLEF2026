@@ -28,6 +28,12 @@ class SpecAugmentation(nn.Module):
 def get_transforms(data='train'):
     if data == 'train':
         transforms_list = [
+            A.GaussNoise(
+                var_limit=cfg.gaussian_noise_limit, 
+                mean=0, 
+                per_channel=True, 
+                p=cfg.gaussian_noise_prob
+            ),
             A.Normalize(
                 mean=[0.485, 0.456, 0.406],
                 std=[0.229, 0.224, 0.225],
