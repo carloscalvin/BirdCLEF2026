@@ -57,9 +57,9 @@ cfg.mixup_prob = 0.0
 cfg.cutmix_prob = 0.0
 cfg.mixup_alpha = 1.0
 
-cfg.spec_aug_time_mask = 30
-cfg.spec_aug_freq_mask = 20
-cfg.spec_aug_prob = 0.5
+cfg.spec_aug_time_mask = 0
+cfg.spec_aug_freq_mask = 0
+cfg.spec_aug_prob = 0.0
 
 model_cfg = SimpleNamespace(**{})
 model_cfg.model_name = "tf_efficientnet_b0_ns"
