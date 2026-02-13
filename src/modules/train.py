@@ -160,7 +160,7 @@ def run_training():
         config=cfg.__dict__
     )
     
-    best_auc = 0.0
+    best_loss = float('inf')
 
     for epoch in range(cfg.epochs):
         train_loss = train_one_epoch(
@@ -179,13 +179,13 @@ def run_training():
             "lr": scheduler.get_last_lr()[0]
         })
 
-        if val_auc > best_auc:
-            best_auc = val_auc
+        if val_loss < best_loss:
+            best_loss = val_loss
             save_path = os.path.join(cfg.output_dir, f"{cfg.model_cfg.model_name}_best_teacher.pth")
             os.makedirs(cfg.output_dir, exist_ok=True)
             torch.save(ema_model.module.state_dict(), save_path)
-            print(f" [S] Modelo guardado! (AUC: {best_auc:.4f})")
-            
+            print(f" [S] Modelo guardado! (Loss: {best_loss:.4f} | AUC: {val_auc:.4f})")
+
     wandb.finish()
     print("Entrenamiento finalizado.")
 
