@@ -18,7 +18,7 @@ def compute_melspec(y, sr):
     )
     melspec = librosa.power_to_db(melspec, ref=np.max)
 
-    return melspec.astype(np.float32)
+    return melspec.astype(np.float16)
 
 def process_audio_file(row):
     file_path = os.path.join(cfg.train_audio_dir, row['filename'])

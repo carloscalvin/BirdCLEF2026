@@ -63,6 +63,7 @@ class BirdDataset(Dataset):
 
         file_path = os.path.join(self.root_dir, chunk_name)
         spec_arr = np.load(file_path)
+        spec_arr = spec_arr.astype(np.float32)
         spec_arr = spec_arr[:, :, np.newaxis]
 
         augmented = self.transform(image=spec_arr)

@@ -69,6 +69,7 @@ class TestDataset(Dataset):
             y = np.pad(y, (0, target_len - len(y)))
 
         spec_arr = compute_melspec(y, cfg.sr)
+        spec_arr = spec_arr.astype(np.float32)
         spec_arr = spec_arr[:, :, np.newaxis]
         augmented = self.transform(image=spec_arr)
         image = augmented['image']
