@@ -23,6 +23,7 @@ from src.data.transforms import get_transforms
 from src.models.model import BirdModel, ModelEMA
 from src.modules.metrics import macro_auc
 from src.modules.losses import BCEFocalLoss
+from src.data.augs import Mixup
 
 def seed_everything(seed=42):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -32,7 +33,7 @@ def seed_everything(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-def train_one_epoch(model, ema_model, loader, optimizer, scheduler, criterion, device, scaler):
+def train_one_epoch(model, ema_model, loader, optimizer, scheduler, criterion, device, scaler, mixup_fn):
     model.train()
     running_loss = 0.0
     
@@ -40,13 +41,19 @@ def train_one_epoch(model, ema_model, loader, optimizer, scheduler, criterion, d
     for images, targets in pbar:
         images = images.to(device)
         targets = targets.to(device)
+        mixed_images, targets_a, targets_b, lam, is_mixed = mixup_fn(images, targets)
         
         optimizer.zero_grad()
 
         with torch.amp.autocast(device_type="cuda", enabled=cfg.use_amp):
-            outputs = model(images)
-            loss = criterion(outputs, targets)
-            
+            outputs = model(mixed_images)
+            if is_mixed:
+                loss_a = criterion(outputs, targets_a)
+                loss_b = criterion(outputs, targets_b)
+                loss = lam * loss_a + (1 - lam) * loss_b
+            else:
+                loss = criterion(outputs, targets)
+
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)
         torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.max_grad_norm)
@@ -149,10 +156,18 @@ def run_training():
 
     optimizer = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     print(f"Usando Focal Loss (Gamma={cfg.loss_gamma:.4f}, Alpha={cfg.loss_alpha:.4f})")
-    criterion = BCEFocalLoss(alpha=cfg.loss_alpha, gamma=cfg.loss_gamma)
+    criterion = BCEFocalLoss(
+        alpha=cfg.loss_alpha, 
+        gamma=cfg.loss_gamma,
+        bce_weight=cfg.loss_bce_weight,
+        focal_weight=cfg.loss_focal_weight
+    )
     scaler = GradScaler(enabled=cfg.use_amp)
     total_steps = len(train_loader) * cfg.epochs
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_steps, eta_min=cfg.min_lr)
+
+    print(f"Configurando Mixup: Prob={cfg.mixup_prob}, Alpha={cfg.mixup_alpha}")
+    mixup_fn = Mixup(mixup_prob=cfg.mixup_prob, alpha=cfg.mixup_alpha)
 
     wandb.init(
         project=cfg.project_name,
@@ -164,7 +179,7 @@ def run_training():
 
     for epoch in range(cfg.epochs):
         train_loss = train_one_epoch(
-            model, ema_model, train_loader, optimizer, scheduler, criterion, cfg.device, scaler
+            model, ema_model, train_loader, optimizer, scheduler, criterion, cfg.device, scaler, mixup_fn
         )
 
         val_loss, val_auc = valid_one_epoch(ema_model.module, val_loader, criterion, cfg.device)

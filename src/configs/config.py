@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
-cfg.exp_name = "tf_efficientnet_b2_ns_mixloss_run16"
+cfg.exp_name = "tf_efficientnet_b2_ns_specmixup_run17"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -52,9 +52,10 @@ cfg.max_grad_norm = 1.0
 cfg.use_amp = True
 cfg.loss_alpha=0.25
 cfg.loss_gamma=2.0
+cfg.loss_bce_weight = 0.6
+cfg.loss_focal_weight = 1.4
 
-cfg.mixup_prob = 0.0
-cfg.cutmix_prob = 0.0
+cfg.mixup_prob = 0.5
 cfg.mixup_alpha = 1.0
 
 cfg.spec_aug_time_mask = 0
