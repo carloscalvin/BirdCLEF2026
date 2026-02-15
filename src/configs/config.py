@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
-cfg.exp_name = "tf_efficientnet_b2_ns_specmixup_run19"
+cfg.exp_name = "tf_efficientnet_b2_ns_specmixup_run20"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -62,7 +62,7 @@ cfg.spec_aug_time_mask = 0
 cfg.spec_aug_freq_mask = 0
 cfg.spec_aug_prob = 0.0
 
-cfg.gaussian_noise_prob = 0.8
+cfg.gaussian_noise_prob = 0.4
 cfg.gaussian_noise_limit = (0.5, 2.0)
 
 model_cfg = SimpleNamespace(**{})
