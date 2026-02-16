@@ -41,18 +41,13 @@ def train_one_epoch(model, ema_model, loader, optimizer, scheduler, criterion, d
     for images, targets in pbar:
         images = images.to(device)
         targets = targets.to(device)
-        mixed_images, targets_a, targets_b, lam, is_mixed = mixup_fn(images, targets)
+        images, targets = mixup_fn(images, targets)
         
         optimizer.zero_grad()
 
         with torch.amp.autocast(device_type="cuda", enabled=cfg.use_amp):
-            outputs = model(mixed_images)
-            if is_mixed:
-                loss_a = criterion(outputs, targets_a)
-                loss_b = criterion(outputs, targets_b)
-                loss = lam * loss_a + (1 - lam) * loss_b
-            else:
-                loss = criterion(outputs, targets)
+            outputs = model(images)
+            loss = criterion(outputs, targets)
 
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)

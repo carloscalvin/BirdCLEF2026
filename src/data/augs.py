@@ -10,7 +10,7 @@ class Mixup(nn.Module):
 
     def forward(self, x, y):
         if self.mixup_prob <= 0 or np.random.rand() > self.mixup_prob:
-            return x, y, y, 1.0, False
+            return x, y
 
         batch_size = x.size(0)
 
@@ -26,4 +26,6 @@ class Mixup(nn.Module):
         target_a = y
         target_b = y[index, :]
 
-        return mixed_x, target_a, target_b, lam, True
+        mixed_y = (target_a + target_b).clamp(max=1.0)
+
+        return mixed_x, mixed_y
