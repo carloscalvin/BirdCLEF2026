@@ -23,14 +23,17 @@ from src.models.model import BirdModel
 from src.data.transforms import get_transforms
 from src.preprocessing.preprocess import compute_melspec
 from src.modules.postprocess import PostProcessor
+import noisereduce as nr
 
 class TestDataset(Dataset):
-    def __init__(self, audio_files, sr=32000, duration=5):
+    def __init__(self, audio_files, n_fft, hop_length, sr=32000, duration=5):
         self.audio_files = audio_files
         self.sr = sr
         self.duration = duration
         self.transform = get_transforms('valid')
         self.data = []
+        self.n_fft = n_fft
+        self.hop_length = hop_length
 
         for file_path in self.audio_files:
             filename = os.path.basename(file_path)
@@ -58,12 +61,19 @@ class TestDataset(Dataset):
     def __getitem__(self, idx):
         item = self.data[idx]
 
-        y, _ = librosa.load(
+        y_orig, _ = librosa.load(
             item['file_path'], 
             sr=self.sr, 
             offset=item['start'], 
             duration=self.duration
         )
+
+        y = nr.reduce_noise(y=y_orig,
+                            sr=self.sr,
+                            n_fft=self.n_fft,
+                            hop_length=self.hop_length,
+                            prop_decrease=0.8,
+                            stationary=True)
 
         target_len = self.sr * self.duration
         if len(y) < target_len:
@@ -88,7 +98,7 @@ def run_inference(weights_path, clasess_path, files_path):
     num_classes = len(class_names)
     print(f"[*] Clases detectadas: {num_classes}")
 
-    ds = TestDataset(audio_files, sr=cfg.sr, duration=cfg.duration)
+    ds = TestDataset(audio_files, cfg.n_fft, cfg.hop_length, sr=cfg.sr, duration=cfg.duration)
     loader = DataLoader(ds, batch_size=cfg.batch_size*2, shuffle=False, num_workers=2, pin_memory=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
