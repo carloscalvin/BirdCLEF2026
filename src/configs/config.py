@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
-cfg.exp_name = "tf_efficientnet_b2_ns_union_mixup_run23"
+cfg.exp_name = "tf_efficientnet_b2_ns_union_mixup_run24"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -43,7 +43,7 @@ cfg.preprocess_val_dir = os.path.join(cfg.data_dir, "val_soundscape_specs")
 os.makedirs(cfg.preprocess_val_dir, exist_ok=True)
 
 cfg.batch_size = 64
-cfg.epochs = 25
+cfg.epochs = 50
 cfg.n_folds = 5
 cfg.lr = 1e-3
 cfg.min_lr = 1e-6
@@ -55,7 +55,7 @@ cfg.loss_gamma=2.0
 cfg.loss_bce_weight = 0.6
 cfg.loss_focal_weight = 1.4
 
-cfg.mixup_prob = 0.9
+cfg.mixup_prob = 1
 cfg.mixup_alpha = 1.0
 
 cfg.spec_aug_time_mask = 0
