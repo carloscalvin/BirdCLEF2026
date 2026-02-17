@@ -8,13 +8,13 @@ class PostProcessor:
         self.post_top_k = cfg.post_top_k
         self.post_exponent = cfg.post_exponent
         self.apply_smoothing = cfg.apply_smoothing
-        self.weights = cfg.weights
+        self.smoothing_weights = cfg.smoothing_weights
 
     def apply_temporal_smoothing(self, probs, row_ids):
         if not self.apply_smoothing:
             return probs
 
-        print(f"[*] Aplicando suavizado temporal con pesos {self.weights}...")
+        print(f"[*] Aplicando suavizado temporal con pesos {self.smoothing_weights}...")
         num_classes = probs.shape[1]
         col_names = [f"c{i}" for i in range(num_classes)]
         
@@ -26,7 +26,7 @@ class PostProcessor:
         df['orig_index'] = df.index
         df = df.sort_values(['group_key', 'end_sec'])
 
-        w_prev, w_curr, w_next = self.weights
+        w_prev, w_curr, w_next = self.smoothing_weights
         groups = df.groupby('group_key')
         results_list = []
         
