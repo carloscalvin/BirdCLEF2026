@@ -23,7 +23,6 @@ from src.data.transforms import get_transforms
 from src.models.model import BirdModel, ModelEMA
 from src.modules.metrics import macro_auc
 from src.modules.losses import BCEFocalLoss
-from src.modules.postprocess import PostProcessor
 from src.data.augs import Mixup
 
 def seed_everything(seed=42):
@@ -94,8 +93,6 @@ def valid_one_epoch(model, loader, criterion, device):
     epoch_loss = running_loss / len(loader.dataset)
 
     all_preds = np.concatenate(all_preds)
-    pp = PostProcessor(cfg)
-    all_preds = pp.run(all_preds)
 
     all_targets = np.concatenate(all_targets)
 
