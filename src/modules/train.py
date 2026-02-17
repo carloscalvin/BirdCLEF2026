@@ -93,10 +93,10 @@ def valid_one_epoch(model, loader, criterion, device):
 
     epoch_loss = running_loss / len(loader.dataset)
 
+    all_preds = np.concatenate(all_preds)
     pp = PostProcessor(cfg)
     all_preds = pp.run(all_preds)
 
-    all_preds = np.concatenate(all_preds)
     all_targets = np.concatenate(all_targets)
 
     epoch_auc = macro_auc(all_targets, all_preds)
