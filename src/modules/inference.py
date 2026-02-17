@@ -22,6 +22,7 @@ from src.configs.config import cfg
 from src.models.model import BirdModel
 from src.data.transforms import get_transforms
 from src.preprocessing.preprocess import compute_melspec
+from src.modules.postprocess import PostProcessor
 
 class TestDataset(Dataset):
     def __init__(self, audio_files, sr=32000, duration=5):
@@ -122,7 +123,8 @@ def run_inference(weights_path, clasess_path, files_path):
             all_row_ids.extend(row_ids)
 
     all_probs = np.concatenate(all_probs)
-
+    pp = PostProcessor(cfg)
+    all_probs = pp.run(all_probs)
     df_sub = pd.DataFrame(all_probs, columns=class_names)
     df_sub.insert(0, "row_id", all_row_ids)
     df_sub.to_csv("submission.csv", index=False)

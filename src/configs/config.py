@@ -71,3 +71,7 @@ model_cfg.pretrained = True
 model_cfg.num_classes = 0
 model_cfg.ema_decay = 0.999
 cfg.model_cfg = model_cfg
+
+cfg.apply_postprocess = True
+cfg.post_top_k = 30
+cfg.post_exponent = 2.0
