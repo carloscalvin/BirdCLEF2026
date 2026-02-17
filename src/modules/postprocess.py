@@ -3,8 +3,8 @@ import numpy as np
 class PostProcessor:
     def __init__(self, cfg):
         self.apply_postprocess = cfg.apply_postprocess
-        self.post_top_k = cfg.post_top_k = 30
-        cfg.post_exponent = 2.0
+        self.post_top_k = cfg.post_top_k
+        self.post_exponent = cfg.post_exponent
 
     def apply_power_to_low_ranked_cols(self, probs):
         if not self.apply_postprocess:
