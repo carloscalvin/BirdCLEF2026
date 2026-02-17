@@ -124,7 +124,7 @@ def run_inference(weights_path, clasess_path, files_path):
 
     all_probs = np.concatenate(all_probs)
     pp = PostProcessor(cfg)
-    all_probs = pp.run(all_probs)
+    all_probs = pp.run(all_probs, all_row_ids)
     df_sub = pd.DataFrame(all_probs, columns=class_names)
     df_sub.insert(0, "row_id", all_row_ids)
     df_sub.to_csv("submission.csv", index=False)

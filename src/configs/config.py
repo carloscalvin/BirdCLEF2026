@@ -75,3 +75,6 @@ cfg.model_cfg = model_cfg
 cfg.apply_postprocess = True
 cfg.post_top_k = 30
 cfg.post_exponent = 2.0
+
+cfg.apply_smoothing = True
+cfg.smoothing_weights = (0.15, 0.70, 0.15)
