@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
-cfg.exp_name = "eca_nfnet_l0.ra2_in1k_union_mixup_run30"
+cfg.exp_name = "regnety_008.pycls_in1k_union_mixup_run28"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -66,19 +66,19 @@ cfg.gaussian_noise_prob = 0.4
 cfg.gaussian_noise_limit = (0.5, 2.0)
 
 model_cfg = SimpleNamespace(**{})
-model_cfg.model_name = "eca_nfnet_l0.ra2_in1k"
+model_cfg.model_name = "regnety_008.pycls_in1k"
 model_cfg.pretrained = True
 model_cfg.num_classes = 0
 model_cfg.ema_decay = 0.999
 cfg.model_cfg = model_cfg
 
-cfg.apply_postprocess = True
+cfg.apply_postprocess = False
 cfg.post_top_k = 30
 cfg.post_exponent = 2.0
 
-cfg.apply_smoothing = True
+cfg.apply_smoothing = False
 cfg.smoothing_weights = (0.15, 0.70, 0.15)
 
-cfg.reduce_noise = True
+cfg.reduce_noise = False
 cfg.reduce_noise_prop_decrease = 0.8
 cfg.reduce_noise_stationary = True
