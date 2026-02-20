@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
-cfg.exp_name = "eca_nfnet_l0.ra2_in1k_union_mixup_run30"
+cfg.exp_name = "tf_efficientnet_b2_ns_union_mixup_run30"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -31,10 +31,10 @@ cfg.output_dir = "outputs/"
 cfg.sr = 32000
 cfg.duration = 5
 cfg.step = 1
-cfg.n_mels = 128
-cfg.fmin = 20
+cfg.n_mels = 224
+cfg.fmin = 0
 cfg.fmax = 16000
-cfg.n_fft = 2048
+cfg.n_fft = 4096
 cfg.hop_length = 512
 
 cfg.preprocess_train_dir = os.path.join(cfg.data_dir, "train_specs")
@@ -66,7 +66,7 @@ cfg.gaussian_noise_prob = 0.4
 cfg.gaussian_noise_limit = (0.5, 2.0)
 
 model_cfg = SimpleNamespace(**{})
-model_cfg.model_name = "eca_nfnet_l0.ra2_in1k"
+model_cfg.model_name = "tf_efficientnet_b2_ns"
 model_cfg.pretrained = True
 model_cfg.num_classes = 0
 model_cfg.ema_decay = 0.999
