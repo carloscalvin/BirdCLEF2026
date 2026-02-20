@@ -78,3 +78,7 @@ cfg.post_exponent = 2.0
 
 cfg.apply_smoothing = True
 cfg.smoothing_weights = (0.15, 0.70, 0.15)
+
+cfg.reduce_noise = True
+cfg.reduce_noise_prop_decrease = 0.8
+cfg.reduce_noise_stationary = True

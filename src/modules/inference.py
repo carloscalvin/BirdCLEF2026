@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import torch
 import librosa
+import noisereduce as nr
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 
@@ -23,7 +24,6 @@ from src.models.model import BirdModel
 from src.data.transforms import get_transforms
 from src.preprocessing.preprocess import compute_melspec
 from src.modules.postprocess import PostProcessor
-import noisereduce as nr
 
 class TestDataset(Dataset):
     def __init__(self, audio_files, n_fft, hop_length, sr=32000, duration=5):
@@ -55,6 +55,18 @@ class TestDataset(Dataset):
             except Exception as e:
                 print(f"Error leyendo {filename}: {e}")
 
+    def __reduce_noise__(self, signal):
+        if not cfg.reduce_noise:
+            return signal
+
+        y = nr.reduce_noise(y=signal,
+                            sr=self.sr,
+                            n_fft=self.n_fft,
+                            hop_length=self.hop_length,
+                            prop_decrease=cfg.reduce_noise_prop_decrease,
+                            stationary=cfg.reduce_noise_stationary)
+        return y
+
     def __len__(self):
         return len(self.data)
 
@@ -68,12 +80,7 @@ class TestDataset(Dataset):
             duration=self.duration
         )
 
-        y = nr.reduce_noise(y=y_orig,
-                            sr=self.sr,
-                            n_fft=self.n_fft,
-                            hop_length=self.hop_length,
-                            prop_decrease=0.8,
-                            stationary=True)
+        y = self.__reduce_noise__(y_orig)
 
         target_len = self.sr * self.duration
         if len(y) < target_len:
