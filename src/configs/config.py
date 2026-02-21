@@ -72,16 +72,16 @@ model_cfg.num_classes = 0
 model_cfg.ema_decay = 0.999
 cfg.model_cfg = model_cfg
 
-cfg.apply_postprocess = False
+cfg.apply_postprocess = True
 cfg.post_top_k = 30
 cfg.post_exponent = 2.0
 
 cfg.use_sliding_window_infer = True
 cfg.infer_overlaps = 4
 
-cfg.apply_smoothing = False
+cfg.apply_smoothing = True
 cfg.smoothing_weights = (0.15, 0.70, 0.15)
 
-cfg.reduce_noise = False
+cfg.reduce_noise = True
 cfg.reduce_noise_prop_decrease = 0.8
 cfg.reduce_noise_stationary = True
