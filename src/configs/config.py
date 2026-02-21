@@ -77,7 +77,7 @@ cfg.post_top_k = 30
 cfg.post_exponent = 2.0
 
 cfg.use_sliding_window_infer = True
-cfg.infer_overlaps = 4
+cfg.infer_overlaps = 2
 
 cfg.apply_smoothing = True
 cfg.smoothing_weights = (0.15, 0.70, 0.15)
