@@ -34,7 +34,7 @@ class TestDataset(Dataset):
         self.data = []
         self.n_fft = n_fft
         self.hop_length = hop_length
-        self.use_sliding = cfg.use_sliding
+        self.use_sliding = cfg.use_sliding_window_infer
         self.overlaps = cfg.overlaps
 
         for file_path in self.audio_files:
