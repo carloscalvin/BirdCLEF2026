@@ -85,3 +85,5 @@ cfg.smoothing_weights = (0.15, 0.70, 0.15)
 cfg.reduce_noise = True
 cfg.reduce_noise_prop_decrease = 0.8
 cfg.reduce_noise_stationary = True
+
+cfg.train_enrichment_threshold = 0.85
