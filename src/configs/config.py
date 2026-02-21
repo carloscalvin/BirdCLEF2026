@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026"
-cfg.exp_name = "tf_efficientnet_b2_ns_union_mixup_run30"
+cfg.exp_name = "tf_efficientnet_b0_ns_union_mixup_run31"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -62,11 +62,11 @@ cfg.spec_aug_time_mask = 0
 cfg.spec_aug_freq_mask = 0
 cfg.spec_aug_prob = 0.0
 
-cfg.gaussian_noise_prob = 0.4
+cfg.gaussian_noise_prob = 0.0
 cfg.gaussian_noise_limit = (0.5, 2.0)
 
 model_cfg = SimpleNamespace(**{})
-model_cfg.model_name = "tf_efficientnet_b2_ns"
+model_cfg.model_name = "tf_efficientnet_b0_ns"
 model_cfg.pretrained = True
 model_cfg.num_classes = 0
 model_cfg.ema_decay = 0.999
@@ -75,6 +75,9 @@ cfg.model_cfg = model_cfg
 cfg.apply_postprocess = False
 cfg.post_top_k = 30
 cfg.post_exponent = 2.0
+
+cfg.use_sliding_window_infer = True
+cfg.infer_overlaps = 4
 
 cfg.apply_smoothing = False
 cfg.smoothing_weights = (0.15, 0.70, 0.15)

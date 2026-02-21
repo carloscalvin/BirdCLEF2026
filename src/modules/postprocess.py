@@ -9,7 +9,29 @@ class PostProcessor:
         self.post_exponent = cfg.post_exponent
         self.apply_smoothing = cfg.apply_smoothing
         self.smoothing_weights = cfg.smoothing_weights
+        self.use_sliding = cfg.use_sliding_window_infer
+    
+    def aggregate_sliding_windows(self, probs, row_ids):
+        if not self.use_sliding:
+            return probs, row_ids
 
+        print("[*] Agregando inferencias de sliding window...")
+        real_row_ids = [rid.split('|')[0] if '|' in rid else rid for rid in row_ids]
+        
+        num_classes = probs.shape[1]
+        col_names = [f"c{i}" for i in range(num_classes)]
+        
+        df = pd.DataFrame(probs, columns=col_names)
+        df['row_id'] = real_row_ids
+        
+        grouped = df.groupby('row_id')[col_names].mean().reset_index()
+        
+        unique_ids = list(dict.fromkeys(real_row_ids))
+        grouped['row_id_cat'] = pd.Categorical(grouped['row_id'], categories=unique_ids, ordered=True)
+        grouped = grouped.sort_values('row_id_cat').drop(columns=['row_id_cat'])
+        
+        return grouped[col_names].values.astype(np.float32), grouped['row_id'].tolist()
+    
     def apply_temporal_smoothing(self, probs, row_ids):
         if not self.apply_smoothing:
             return probs
@@ -63,6 +85,8 @@ class PostProcessor:
         return p
 
     def run(self, probs, row_ids):
+        probs, row_ids = self.aggregate_sliding_windows(probs, row_ids)
         probs = self.apply_temporal_smoothing(probs, row_ids)        
         probs = self.apply_power_to_low_ranked_cols(probs)
-        return probs
+
+        return probs, row_ids

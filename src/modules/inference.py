@@ -34,26 +34,40 @@ class TestDataset(Dataset):
         self.data = []
         self.n_fft = n_fft
         self.hop_length = hop_length
+        self.use_sliding = cfg.use_sliding
+        self.overlaps = cfg.overlaps
 
         for file_path in self.audio_files:
             filename = os.path.basename(file_path)
             base_name = filename.split('.')[0]
-            try:
-                audio_len_sec = librosa.get_duration(path=file_path)
-                chunks = math.ceil(audio_len_sec / duration)
+            audio_len_sec = librosa.get_duration(path=file_path)
+            chunks = math.ceil(audio_len_sec / duration)
+            
+            for i in range(chunks):
+                target_end = (i + 1) * duration
+                target_start = i * duration
                 
-                for i in range(chunks):
-                    end_sec = (i + 1) * duration
-                    row_id = f"{base_name}_{end_sec}"
-                    
+                if not self.use_sliding:
+                    row_id = f"{base_name}_{target_end}"
                     self.data.append({
                         'file_path': file_path,
-                        'start': i * duration,
-                        'end': end_sec,
+                        'start': target_start,
+                        'end': target_end,
                         'row_id': row_id
                     })
-            except Exception as e:
-                print(f"Error leyendo {filename}: {e}")
+                else:
+                    half_window = duration / 2.0
+                    shifts = np.linspace(-half_window/2, half_window/2, self.overlaps)
+                    
+                    for shift in shifts:
+                        win_start = max(0.0, target_start + shift)
+                        row_id_temp = f"{base_name}_{target_end}|{win_start:.2f}"
+                        self.data.append({
+                            'file_path': file_path,
+                            'start': win_start,
+                            'end': win_start + duration,
+                            'row_id': row_id_temp
+                        })
 
     def __reduce_noise__(self, signal):
         if not cfg.reduce_noise:
@@ -141,7 +155,7 @@ def run_inference(weights_path, clasess_path, files_path):
 
     all_probs = np.concatenate(all_probs)
     pp = PostProcessor(cfg)
-    all_probs = pp.run(all_probs, all_row_ids)
+    all_probs, all_row_ids = pp.run(all_probs, all_row_ids)
     df_sub = pd.DataFrame(all_probs, columns=class_names)
     df_sub.insert(0, "row_id", all_row_ids)
     df_sub.to_csv("submission.csv", index=False)
