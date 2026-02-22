@@ -77,6 +77,8 @@ def run_enrichment(weights_path, threshold=0.85):
             probs = torch.sigmoid(outputs).cpu().numpy()
             all_preds[indices.numpy()] = probs
 
+    np.save(os.path.join(cfg.output_dir, "train_raw_preds.npy"), all_preds)
+
     print(f"[*] Inyectando predicciones > {threshold} como etiquetas duras...")
     
     preds_boolean = all_preds > threshold
