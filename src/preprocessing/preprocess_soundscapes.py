@@ -2,7 +2,6 @@ import os
 import sys
 import pandas as pd
 import numpy as np
-import cv2
 import librosa
 from tqdm import tqdm
 
@@ -11,9 +10,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from src.configs.config import cfg
 from src.preprocessing.preprocess import compute_melspec
 
-def preprocess_validation():
-    print(f"Leyendo teacher CSV: {cfg.teacher_preds_path}")
-    df = pd.read_csv(cfg.teacher_preds_path)
+def preprocess_soundscapes(preds_path, preprocess_dir, processed_path):
+    print(f"Leyendo teacher CSV: {preds_path}")
+    df = pd.read_csv(preds_path)
 
     non_class_cols = ['row_id']
     class_cols = [c for c in df.columns if c not in non_class_cols]
@@ -27,7 +26,7 @@ def preprocess_validation():
     
     print(f"Procesando {len(df)} segmentos de soundscapes...")
     
-    os.makedirs(cfg.preprocess_val_dir, exist_ok=True)
+    os.makedirs(preprocess_dir, exist_ok=True)
 
     missing_files = set()
 
@@ -57,7 +56,7 @@ def preprocess_validation():
             spec_arr = compute_melspec(y, cfg.sr)
 
             save_name = row_id + ".npy"
-            save_path = os.path.join(cfg.preprocess_val_dir, save_name)
+            save_path = os.path.join(preprocess_dir, save_name)
             np.save(save_path, spec_arr)
 
             soft_targets = row[class_cols].values.astype(np.float32)
@@ -72,10 +71,22 @@ def preprocess_validation():
             print(f"Error procesando {row_id} en {audio_path}: {e}")
 
     df_val_processed = pd.DataFrame(valid_data)
-    df_val_processed.to_pickle(cfg.val_processed_path)
+    df_val_processed.to_pickle(processed_path)
     
-    print(f"Procesado completado. Guardado en {cfg.val_processed_path}")
+    print(f"Procesado completado. Guardado en {processed_path}")
     print(f"Total muestras validación generadas: {len(df_val_processed)}")
 
 if __name__ == "__main__":
-    preprocess_validation()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--mode", choices=["validation", "pseudo"], default="validation",
+                        help="Modo: generar validación o pseudo-labels")
+    args = parser.parse_args()
+
+    if args.mode == "validation":
+        print("\n=== Generando espectogramas de VALIDACIÓN ===")
+        preprocess_soundscapes(cfg.teacher_preds_path, cfg.preprocess_val_dir, cfg.val_processed_path)
+
+    elif args.mode == "pseudo":
+        print("\n=== Generando espectogramas de PSEUDO-LABELS ===")
+        preprocess_soundscapes(cfg.pseudo_soundscape_labels_path, cfg.preprocess_pseudo_dir, cfg.pseudo_processed_path)
