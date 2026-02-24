@@ -13,4 +13,4 @@ def test_device_config():
 def test_model_config_exists():
     assert hasattr(cfg, "model_cfg")
     assert isinstance(cfg.model_cfg, SimpleNamespace)
-    assert cfg.model_cfg.model_name == "BirdClefModel"
+    assert cfg.model_cfg.model_name == "tf_efficientnet_b0_ns"

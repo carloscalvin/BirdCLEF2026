@@ -10,7 +10,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from src.configs.config import cfg
 from src.preprocessing.preprocess import compute_melspec
 
-def preprocess_soundscapes(preds_path, preprocess_dir, processed_path):
+def preprocess_soundscapes(preds_path, preprocess_dir, processed_path, pseudo=False):
     print(f"Leyendo teacher CSV: {preds_path}")
     df = pd.read_csv(preds_path)
 
@@ -21,6 +21,14 @@ def preprocess_soundscapes(preds_path, preprocess_dir, processed_path):
     print(f"Detectadas {len(class_cols)} clases en validación.")
 
     pd.Series(class_cols).to_csv(cfg.classes_order_path, index=False, header=False)
+
+    if pseudo:
+        thresh = cfg.pseudo_threshold
+        mask = (df[class_cols] >= thresh).any(axis=1)
+        total_before = len(df)
+        df = df[mask].reset_index(drop=True)
+        kept = len(df)
+        print(f"Modo pseudo: filtradas {total_before - kept} filas; quedan {kept} con pred >= {thresh}")
 
     valid_data = []
     
@@ -89,4 +97,4 @@ if __name__ == "__main__":
 
     elif args.mode == "pseudo":
         print("\n=== Generando espectogramas de PSEUDO-LABELS ===")
-        preprocess_soundscapes(cfg.pseudo_soundscape_labels_path, cfg.preprocess_pseudo_dir, cfg.pseudo_processed_path)
+        preprocess_soundscapes(cfg.pseudo_soundscape_labels_path, cfg.preprocess_pseudo_dir, cfg.pseudo_processed_path, True)
