@@ -5,12 +5,13 @@ import ast
 from torch.utils.data import Dataset
 
 class BirdDataset(Dataset):
-    def __init__(self, df, root_dir, transform, mode='train', class_names=None):
+    def __init__(self, df, root_dir, transform, mode='train', class_names=None, pseudo_threshold=None):
         self.root_dir = root_dir
         self.transform = transform
         self.mode = mode
         
         self.class_names = class_names
+        self.pseudo_threshold = pseudo_threshold
         self.class_to_idx = {label: idx for idx, label in enumerate(self.class_names)}
         self.num_classes = len(self.class_names)
 
@@ -25,7 +26,9 @@ class BirdDataset(Dataset):
                 labels = ast.literal_eval(row.get('secondary_labels'))
                 self.file_to_secondary[fname] = [l for l in labels if l]
             print(f"[TRAIN] Dataset cargado. {len(self.file_names)} archivos únicos. {self.num_classes} clases.")
-
+        elif self.mode == 'pseudo':
+            self.df = df
+            print(f"[PSEUDO] Dataset cargado. {len(self.df)} muestras confiables (hard labels).")
         else:
             self.df = df
             print(f"[VALID] Dataset cargado. {len(self.df)} muestras de soundscape.")
@@ -52,7 +55,13 @@ class BirdDataset(Dataset):
             for s_label in sec_labels:
                 s_idx = self.class_to_idx[s_label]
                 target[s_idx] = 1.0
-
+        elif self.mode == 'pseudo':
+            row = self.df.iloc[idx]
+            chunk_name = row['chunk_name']
+            target = row['targets']
+            if not isinstance(target, np.ndarray):
+                target = np.array(target)
+            target = (target >= self.pseudo_threshold).astype(np.float32)
         else:
             row = self.df.iloc[idx]
             chunk_name = row['chunk_name']

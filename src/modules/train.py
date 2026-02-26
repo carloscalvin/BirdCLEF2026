@@ -33,7 +33,7 @@ def seed_everything(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-def train_one_epoch(model, ema_model, loader, optimizer, scheduler, criterion, device, scaler, mixup_fn):
+def train_one_epoch(model, ema_model, loader, pseudo_loader, pseudo_iter, optimizer, scheduler, criterion, device, scaler, mixup_fn):
     model.train()
     running_loss = 0.0
     
@@ -41,7 +41,22 @@ def train_one_epoch(model, ema_model, loader, optimizer, scheduler, criterion, d
     for images, targets in pbar:
         images = images.to(device)
         targets = targets.to(device)
-        images, targets = mixup_fn(images, targets)
+        
+        x_pseudo, y_pseudo = None, None
+        is_pseudo_mix = False
+
+        if pseudo_loader is not None and np.random.rand() < cfg.pseudo_mixup_ratio:
+            is_pseudo_mix = True
+            try:
+                x_pseudo, y_pseudo = next(pseudo_iter)
+            except StopIteration:
+                pseudo_iter = iter(pseudo_loader)
+                x_pseudo, y_pseudo = next(pseudo_iter)
+                
+            x_pseudo = x_pseudo.to(device)
+            y_pseudo = y_pseudo.to(device)
+
+        images, targets = mixup_fn(images, targets, x_pseudo, y_pseudo, is_pseudo_mix)
         
         optimizer.zero_grad()
 
@@ -66,7 +81,7 @@ def train_one_epoch(model, ema_model, loader, optimizer, scheduler, criterion, d
         pbar.set_postfix({'loss': loss.item()})
 
     epoch_loss = running_loss / len(loader.dataset)
-    return epoch_loss
+    return epoch_loss, pseudo_iter
 
 @torch.no_grad()
 def valid_one_epoch(model, loader, criterion, device):
@@ -107,7 +122,7 @@ def run_training():
     num_classes = len(class_names)
     print(f"Clases cargadas: {num_classes}")
 
-    df_train = pd.read_csv(os.path.join(cfg.data_dir, "train_enriched.csv"))
+    df_train = pd.read_csv(os.path.join(cfg.data_dir, "train_processed.csv"))
     df_val = pd.read_pickle(cfg.val_processed_path)
 
     train_ds = BirdDataset(
@@ -143,6 +158,21 @@ def run_training():
         pin_memory=True
     )
 
+    pseudo_loader = None
+    pseudo_iter = None
+    if cfg.use_pseudo_labels:
+        pseudo_df = pd.read_pickle(cfg.pseudo_processed_path)
+        pseudo_ds = BirdDataset(
+            pseudo_df, cfg.preprocess_pseudo_dir, transform=get_transforms('train'), 
+            mode='pseudo', class_names=class_names
+        )
+        pseudo_loader = DataLoader(
+            pseudo_ds, batch_size=cfg.batch_size, shuffle=True,
+            num_workers=cfg.num_workers, pin_memory=True, drop_last=True
+        )
+        pseudo_iter = iter(pseudo_loader)
+        print(f"Inyector pseudo activado con {len(pseudo_ds)} muestras.")
+
     print(f"Creando modelo {cfg.model_cfg.model_name} para {num_classes} clases...")
     model = BirdModel(cfg.model_cfg.model_name, num_classes=num_classes, pretrained=cfg.model_cfg.pretrained)
     model.to(cfg.device)
@@ -174,8 +204,9 @@ def run_training():
     best_auc = 0.0
 
     for epoch in range(cfg.epochs):
-        train_loss = train_one_epoch(
-            model, ema_model, train_loader, optimizer, scheduler, criterion, cfg.device, scaler, mixup_fn
+        train_loss, pseudo_iter = train_one_epoch(
+            model, ema_model, train_loader, pseudo_loader, pseudo_iter, 
+            optimizer, scheduler, criterion, cfg.device, scaler, mixup_fn
         )
 
         val_loss, val_auc = valid_one_epoch(ema_model.module, val_loader, criterion, cfg.device)
