@@ -163,8 +163,12 @@ def run_training():
     if cfg.use_pseudo_labels:
         pseudo_df = pd.read_pickle(cfg.pseudo_processed_path)
         pseudo_ds = BirdDataset(
-            pseudo_df, cfg.preprocess_pseudo_dir, transform=get_transforms('train'), 
-            mode='pseudo', class_names=class_names
+            pseudo_df, 
+            cfg.preprocess_pseudo_dir, 
+            transform=get_transforms('train'), 
+            mode='pseudo', 
+            class_names=class_names,
+            pseudo_threshold=cfg.pseudo_threshold
         )
         pseudo_loader = DataLoader(
             pseudo_ds, batch_size=cfg.batch_size, shuffle=True,
