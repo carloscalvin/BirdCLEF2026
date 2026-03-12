@@ -13,8 +13,7 @@ cfg.fast_dev_run = False
 
 cfg.target_year = "2026"
 cfg.dataset_slug = f"birdclef-{cfg.target_year}"
-cfg.data_dir = "/kaggle/input/competitions/"
-cfg.preprocess_data_dir = "/kaggle/working/"
+cfg.data_dir = "dataset/"
 cfg.dataset_root = os.path.join(cfg.data_dir, cfg.dataset_slug)
 
 cfg.train_audio_dir = os.path.join(cfg.dataset_root, "train_audio")
@@ -40,11 +39,11 @@ cfg.fmax = 16000
 cfg.n_fft = 4096
 cfg.hop_length = 512
 
-cfg.preprocess_train_dir = os.path.join(cfg.preprocess_data_dir, "train_specs")
+cfg.preprocess_train_dir = os.path.join(cfg.data_dir, "train_specs")
 os.makedirs(cfg.preprocess_train_dir, exist_ok=True)
-cfg.preprocess_val_dir = os.path.join(cfg.preprocess_data_dir, "val_soundscape_specs")
+cfg.preprocess_val_dir = os.path.join(cfg.data_dir, "val_soundscape_specs")
 os.makedirs(cfg.preprocess_val_dir, exist_ok=True)
-cfg.preprocess_pseudo_dir = os.path.join(cfg.preprocess_data_dir, "pseudo_soundscape_specs")
+cfg.preprocess_pseudo_dir = os.path.join(cfg.data_dir, "pseudo_soundscape_specs")
 os.makedirs(cfg.preprocess_pseudo_dir, exist_ok=True)
 
 cfg.batch_size = 64
