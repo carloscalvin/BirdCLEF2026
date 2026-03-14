@@ -205,8 +205,6 @@ def run_training():
         config=cfg.__dict__
     )
     
-    best_auc = 0.0
-
     for epoch in range(cfg.epochs):
         train_loss, pseudo_iter = train_one_epoch(
             model, ema_model, train_loader, pseudo_loader, pseudo_iter, 
@@ -225,12 +223,11 @@ def run_training():
             "lr": scheduler.get_last_lr()[0]
         })
 
-        if val_auc > best_auc:
-            best_auc = val_auc
-            save_path = os.path.join(cfg.output_dir, f"{cfg.model_cfg.model_name}_best_teacher.pth")
-            os.makedirs(cfg.output_dir, exist_ok=True)
-            torch.save(ema_model.module.state_dict(), save_path)
-            print(f" [S] Modelo guardado! (AUC: {best_auc:.4f})")
+        if epoch >= (cfg.epochs - 5):
+                    save_path = os.path.join(cfg.output_dir, f"{cfg.model_cfg.model_name}_epoch_{epoch+1}.pth")
+                    os.makedirs(cfg.output_dir, exist_ok=True)
+                    torch.save(ema_model.module.state_dict(), save_path)
+                    print(f" [S] Modelo del epoch {epoch+1}, AUC: {val_auc:.4f} guardado para el ensamble!")
             
     wandb.finish()
     print("Entrenamiento finalizado.")
