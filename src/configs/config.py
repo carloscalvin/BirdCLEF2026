@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026_Pantanal"
-cfg.exp_name = "regnety_008.pycls_in1k_train_50_epochs_run6"
+cfg.exp_name = "tf_efficientnet_b0_ns_use_pseudo_labels_run7"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -23,8 +23,8 @@ cfg.test_soundscapes_dir = os.path.join(cfg.dataset_root, "test_soundscapes")
 cfg.train_csv_path = os.path.join(cfg.dataset_root, "train.csv")
 cfg.taxonomy_csv_path = os.path.join(cfg.dataset_root, "taxonomy.csv")
 cfg.sample_submission_path = os.path.join(cfg.dataset_root, "sample_submission.csv")
-cfg.teacher_preds_path = os.path.join(cfg.dataset_root, "val_soundscape_combined.csv")
-cfg.pseudo_soundscape_labels_path = os.path.join(cfg.dataset_root, "pseudo_soundscape.csv")
+cfg.teacher_preds_path = os.path.join(cfg.dataset_root, "val_soundscape.csv")
+cfg.pseudo_soundscape_labels_path = os.path.join(cfg.dataset_root, "val_soundscape_combined.csv")
 cfg.classes_order_path = os.path.join(cfg.dataset_root, "classes_order.csv")
 cfg.val_processed_path = os.path.join(cfg.dataset_root, "val_processed.pkl")
 cfg.pseudo_processed_path = os.path.join(cfg.dataset_root, "pseudo_processed.pkl")
@@ -70,7 +70,7 @@ cfg.gaussian_noise_prob = 0.0
 cfg.gaussian_noise_limit = (0.5, 2.0)
 
 model_cfg = SimpleNamespace(**{})
-model_cfg.model_name = "regnety_008.pycls_in1k"
+model_cfg.model_name = "tf_efficientnet_b0_ns"
 model_cfg.pretrained = True
 model_cfg.num_classes = 0
 model_cfg.ema_decay = 0.999
@@ -92,6 +92,6 @@ cfg.reduce_noise_stationary = True
 
 cfg.train_enrichment_threshold = 0.65
 
-cfg.use_pseudo_labels = False
-cfg.pseudo_threshold = 0.0
+cfg.use_pseudo_labels = True
+cfg.pseudo_threshold = 0.5
 cfg.pseudo_mixup_ratio = 0.5

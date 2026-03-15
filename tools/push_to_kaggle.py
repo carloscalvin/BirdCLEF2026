@@ -10,7 +10,7 @@ TEMP_DIR = os.path.join(PROJECT_ROOT, "kaggle_dataset_temp")
 
 INCLUDE_DIRS = ["src"]
 INCLUDE_FILES = [
-    "outputs/regnety_008.pycls_in1k_best_teacher.pth",
+    "outputs/tf_efficientnet_b0_ns_best_teacher.pth",
     "dataset/birdclef-2026/classes_order.csv"
 ]
 
