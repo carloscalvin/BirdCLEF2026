@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026_Pantanal"
-cfg.exp_name = "regnety_008.pycls_in1k_use_pseudo_labels_run8"
+cfg.exp_name = "tf_efficientnet_b0_ns_pseudo_labels_full2025_run18"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -70,7 +70,7 @@ cfg.gaussian_noise_prob = 0.0
 cfg.gaussian_noise_limit = (0.5, 2.0)
 
 model_cfg = SimpleNamespace(**{})
-model_cfg.model_name = "regnety_008.pycls_in1k"
+model_cfg.model_name = "tf_efficientnet_b0_ns"
 model_cfg.pretrained = True
 model_cfg.num_classes = 0
 model_cfg.ema_decay = 0.999
@@ -93,5 +93,5 @@ cfg.reduce_noise_stationary = True
 cfg.train_enrichment_threshold = 0.65
 
 cfg.use_pseudo_labels = True
-cfg.pseudo_threshold = 0.5
+cfg.pseudo_threshold = 0.75
 cfg.pseudo_mixup_ratio = 0.5
