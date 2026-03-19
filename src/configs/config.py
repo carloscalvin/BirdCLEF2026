@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026_Pantanal"
-cfg.exp_name = "tf_efficientnet_b0_ns_pseudo_labels_full2025_run18"
+cfg.exp_name = "tf_efficientnet_b0_ns_compute_deltas_run19"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42

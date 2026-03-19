@@ -1,7 +1,9 @@
 import albumentations as A
 from albumentations.pytorch import ToTensorV2
+import torch
 import torch.nn as nn
 import torchaudio.transforms as T
+import torchaudio.functional as F_audio
 import numpy as np
 from src.configs.config import cfg
 
@@ -32,6 +34,12 @@ class SpecAugmentation(nn.Module):
             out = self.freq_mask(out)
         return out
 
+def _compute_deltas(mel_tensor):
+    delta_tensor = F_audio.compute_deltas(mel_tensor)
+    delta2_tensor = F_audio.compute_deltas(delta_tensor)
+    image_tensor = torch.cat([mel_tensor, delta_tensor, delta2_tensor], dim=0)
+    return image_tensor
+
 def get_transforms(data='train'):
     if data == 'train':
         albumentations_list = [
@@ -55,12 +63,13 @@ def get_transforms(data='train'):
 
         def transform_fn(image, **kwargs):
             augmented = base_pipeline(image=image)
-            image_tensor = augmented['image'].float()
+            mel_tensor = augmented['image'].float()
+            image_tensor = _compute_deltas(mel_tensor)
             image_tensor = norm_layer(image_tensor)
 
             if cfg.spec_aug_time_mask > 0 or cfg.spec_aug_freq_mask > 0:
                 image_tensor = spec_aug(image_tensor)
-            image_tensor = image_tensor.repeat(3, 1, 1)
+                
             return {'image': image_tensor}
 
         return transform_fn
@@ -71,9 +80,10 @@ def get_transforms(data='train'):
 
         def transform_fn_val(image, **kwargs):
             augmented = base_pipeline(image=image)
-            image_tensor = augmented['image'].float()
+            mel_tensor = augmented['image'].float()
+            image_tensor = _compute_deltas(mel_tensor)
             image_tensor = norm_layer(image_tensor)
-            image_tensor = image_tensor.repeat(3, 1, 1)
+            
             return {'image': image_tensor}
 
         return transform_fn_val
