@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026_Pantanal"
-cfg.exp_name = "tf_efficientnet_b0_ns_pseudo_labels_full2025_run18"
+cfg.exp_name = "tf_efficientnet_b0_ns_enrich_train_labels_run20"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -93,5 +93,5 @@ cfg.reduce_noise_stationary = True
 cfg.train_enrichment_threshold = 0.65
 
 cfg.use_pseudo_labels = True
-cfg.pseudo_threshold = 0.75
+cfg.pseudo_threshold = 0.5
 cfg.pseudo_mixup_ratio = 0.5

@@ -127,5 +127,5 @@ def run_enrichment(weights_path, threshold=0.85):
     print(f"[*] ¡Éxito! Dataset enriquecido guardado en: {output_csv}")
 
 if __name__ == "__main__":
-    weights_path = os.path.join(cfg.output_dir, f"{cfg.model_cfg.model_name}_best_teacher.pth")
+    weights_path = os.path.join(cfg.output_dir, f"{cfg.model_cfg.model_name}_to_enrich_labels.pth")
     run_enrichment(weights_path, cfg.train_enrichment_threshold)

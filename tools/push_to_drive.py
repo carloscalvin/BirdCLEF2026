@@ -8,7 +8,10 @@ OUTPUT_NAME = "BirdCLEF2026_Codebase"
 DRIVE_DESTINATION_DIR = None 
 
 INCLUDE_DIRS = ["src"]
-INCLUDE_FILES = ["requirements.txt"]
+INCLUDE_FILES = [
+    "outputs/tf_efficientnet_b0_ns_to_enrich_labels.pth",
+    "requirements.txt"
+]
 
 def zip_project():
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
