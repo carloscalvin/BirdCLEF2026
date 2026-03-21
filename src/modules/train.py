@@ -122,7 +122,7 @@ def run_training():
     num_classes = len(class_names)
     print(f"Clases cargadas: {num_classes}")
 
-    df_train = pd.read_csv(os.path.join(cfg.data_dir, "train_enriched.csv"))
+    df_train = pd.read_csv(os.path.join(cfg.data_dir, "train.csv"))
     df_val = pd.read_pickle(cfg.val_processed_path)
 
     train_ds = BirdDataset(

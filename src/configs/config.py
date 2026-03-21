@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026_Pantanal"
-cfg.exp_name = "tf_efficientnet_b0_ns_enrich_train_labels_run20"
+cfg.exp_name = "tf_efficientnet_b0_ns_pseudo_second_iteration_run23"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -24,7 +24,7 @@ cfg.train_csv_path = os.path.join(cfg.dataset_root, "train.csv")
 cfg.taxonomy_csv_path = os.path.join(cfg.dataset_root, "taxonomy.csv")
 cfg.sample_submission_path = os.path.join(cfg.dataset_root, "sample_submission.csv")
 cfg.teacher_preds_path = os.path.join(cfg.dataset_root, "val_soundscape.csv")
-cfg.pseudo_soundscape_labels_path = os.path.join(cfg.dataset_root, "val_soundscape_combined.csv")
+cfg.pseudo_soundscape_labels_path = os.path.join(cfg.dataset_root, "pseudos_0.904_ensemble.csv")
 cfg.classes_order_path = os.path.join(cfg.dataset_root, "classes_order.csv")
 cfg.val_processed_path = os.path.join(cfg.dataset_root, "val_processed.pkl")
 cfg.pseudo_processed_path = os.path.join(cfg.dataset_root, "pseudo_processed.pkl")
