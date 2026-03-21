@@ -122,7 +122,7 @@ def run_training():
     num_classes = len(class_names)
     print(f"Clases cargadas: {num_classes}")
 
-    df_train = pd.read_csv(os.path.join(cfg.data_dir, "train.csv"))
+    df_train = pd.read_csv(os.path.join(cfg.data_dir, "train_processed.csv"))
     df_val = pd.read_pickle(cfg.val_processed_path)
 
     train_ds = BirdDataset(
@@ -223,7 +223,7 @@ def run_training():
             "lr": scheduler.get_last_lr()[0]
         })
 
-        if epoch >= (cfg.epochs - 5):
+        if epoch >= (cfg.epochs - cfg.epochs_to_save):
                     save_path = os.path.join(cfg.output_dir, f"{cfg.model_cfg.model_name}_epoch_{epoch+1}.pth")
                     os.makedirs(cfg.output_dir, exist_ok=True)
                     torch.save(ema_model.module.state_dict(), save_path)
