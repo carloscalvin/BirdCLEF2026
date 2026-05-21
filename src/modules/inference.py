@@ -20,10 +20,40 @@ warnings.filterwarnings("ignore", category=UndefinedMetricWarning)
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from src.configs.config import cfg
-from src.models.model import BirdModel
+from src.models.model import BirdModel, BirdSEDModel
 from src.data.transforms import get_transforms
 from src.preprocessing.preprocess import compute_melspec
 from src.modules.postprocess import PostProcessor
+
+
+def _build_inference_model(num_classes: int, weights_path: str, device):
+    mcfg = cfg.model_cfg
+    if getattr(mcfg, 'use_sed', False):
+        model = BirdSEDModel(
+            model_name=mcfg.model_name,
+            num_classes=num_classes,
+            pretrained=False,
+            use_gru=getattr(mcfg, 'sed_use_gru', True),
+            gru_hidden=getattr(mcfg, 'sed_gru_hidden', 256),
+            gru_layers=getattr(mcfg, 'sed_gru_layers', 2),
+            gru_dropout=getattr(mcfg, 'sed_gru_dropout', 0.2),
+        )
+    else:
+        model = BirdModel(
+            model_name=mcfg.model_name,
+            num_classes=num_classes,
+            pretrained=False,
+        )
+    print(f"[*] Cargando pesos desde: {weights_path}")
+    try:
+        state_dict = torch.load(weights_path, map_location=device)
+        model.load_state_dict(state_dict)
+    except Exception as e:
+        print(f"[ERROR] Fallo cargando pesos: {e}")
+        return None
+    model.to(device)
+    model.eval()
+    return model
 
 class TestDataset(Dataset):
     def __init__(self, audio_files, n_fft, hop_length, sr=32000, duration=5):
@@ -123,22 +153,9 @@ def run_inference(weights_path, clasess_path, files_path):
     loader = DataLoader(ds, batch_size=cfg.batch_size*2, shuffle=False, num_workers=2, pin_memory=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    model = BirdModel(
-        model_name=cfg.model_cfg.model_name, 
-        num_classes=num_classes, 
-        pretrained=False
-    )
-    
-    print(f"[*] Cargando pesos desde: {weights_path}")
-    try:
-        state_dict = torch.load(weights_path, map_location=device)
-        model.load_state_dict(state_dict)
-    except Exception as e:
-        print(f"[ERROR] Fallo cargando pesos: {e}")
+    model = _build_inference_model(num_classes, weights_path, device)
+    if model is None:
         return
-
-    model.to(device)
-    model.eval()
 
     all_probs = []
     all_row_ids = []

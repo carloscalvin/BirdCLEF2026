@@ -20,10 +20,33 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '.
 from src.configs.config import cfg
 from src.data.dataset import BirdDataset
 from src.data.transforms import get_transforms
-from src.models.model import BirdModel, ModelEMA
+from src.models.model import BirdModel, BirdSEDModel, ModelEMA
 from src.modules.metrics import macro_auc
 from src.modules.losses import BCEFocalLoss
 from src.data.augs import Mixup
+
+def build_model(num_classes: int):
+    mcfg = cfg.model_cfg
+    if getattr(mcfg, 'use_sed', False):
+        model = BirdSEDModel(
+            model_name=mcfg.model_name,
+            num_classes=num_classes,
+            pretrained=mcfg.pretrained,
+            use_gru=getattr(mcfg, 'sed_use_gru', True),
+            gru_hidden=getattr(mcfg, 'sed_gru_hidden', 256),
+            gru_layers=getattr(mcfg, 'sed_gru_layers', 2),
+            gru_dropout=getattr(mcfg, 'sed_gru_dropout', 0.2),
+        )
+        arch = f"BirdSEDModel (GRU={'on' if getattr(mcfg, 'sed_use_gru', True) else 'off'})"
+    else:
+        model = BirdModel(
+            model_name=mcfg.model_name,
+            num_classes=num_classes,
+            pretrained=mcfg.pretrained,
+        )
+        arch = "BirdModel (GeM baseline)"
+    print(f"Arquitectura: {arch}")
+    return model
 
 def seed_everything(seed=42):
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -33,11 +56,17 @@ def seed_everything(seed=42):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-def train_one_epoch(model, ema_model, loader, pseudo_loader, pseudo_iter, optimizer, scheduler, criterion, device, scaler, mixup_fn):
+def train_one_epoch(model, ema_model, loader, pseudo_loader, pseudo_iter, optimizer, scheduler, criterion, device, scaler, mixup_fn, epoch=0):
     model.train()
     running_loss = 0.0
-    
-    pbar = tqdm(loader, desc="Train", leave=False)
+    n_mixed = 0
+    n_pseudo_mixed = 0
+    n_total = 0
+
+    if mixup_fn is not None and hasattr(mixup_fn, "set_epoch"):
+        mixup_fn.set_epoch(epoch)
+
+    pbar = tqdm(loader, desc=f"Train (ep {epoch+1})", leave=False)
     for images, targets in pbar:
         images = images.to(device)
         targets = targets.to(device)
@@ -52,12 +81,18 @@ def train_one_epoch(model, ema_model, loader, pseudo_loader, pseudo_iter, optimi
             except StopIteration:
                 pseudo_iter = iter(pseudo_loader)
                 x_pseudo, y_pseudo = next(pseudo_iter)
-                
+
             x_pseudo = x_pseudo.to(device)
             y_pseudo = y_pseudo.to(device)
 
+        n_total += images.size(0)
+        original_targets = targets
         images, targets = mixup_fn(images, targets, x_pseudo, y_pseudo, is_pseudo_mix)
-        
+        if targets is not original_targets:
+            n_mixed += images.size(0)
+            if is_pseudo_mix:
+                n_pseudo_mixed += images.size(0)
+
         optimizer.zero_grad()
 
         with torch.amp.autocast(device_type="cuda", enabled=cfg.use_amp):
@@ -81,7 +116,9 @@ def train_one_epoch(model, ema_model, loader, pseudo_loader, pseudo_iter, optimi
         pbar.set_postfix({'loss': loss.item()})
 
     epoch_loss = running_loss / len(loader.dataset)
-    return epoch_loss, pseudo_iter
+    mix_frac = (n_mixed / n_total) if n_total > 0 else 0.0
+    pseudo_mix_frac = (n_pseudo_mixed / n_total) if n_total > 0 else 0.0
+    return epoch_loss, pseudo_iter, mix_frac, pseudo_mix_frac
 
 @torch.no_grad()
 def valid_one_epoch(model, loader, criterion, device):
@@ -163,12 +200,13 @@ def run_training():
     if cfg.use_pseudo_labels:
         pseudo_df = pd.read_pickle(cfg.pseudo_processed_path)
         pseudo_ds = BirdDataset(
-            pseudo_df, 
-            cfg.preprocess_pseudo_dir, 
-            transform=get_transforms('train'), 
-            mode='pseudo', 
+            pseudo_df,
+            cfg.preprocess_pseudo_dir,
+            transform=get_transforms('train'),
+            mode='pseudo',
             class_names=class_names,
-            pseudo_threshold=cfg.pseudo_threshold
+            pseudo_threshold=cfg.pseudo_threshold,
+            pseudo_use_soft_labels=getattr(cfg, 'pseudo_use_soft_labels', False),
         )
         pseudo_loader = DataLoader(
             pseudo_ds, batch_size=cfg.batch_size, shuffle=True,
@@ -178,7 +216,7 @@ def run_training():
         print(f"Inyector pseudo activado con {len(pseudo_ds)} muestras.")
 
     print(f"Creando modelo {cfg.model_cfg.model_name} para {num_classes} clases...")
-    model = BirdModel(cfg.model_cfg.model_name, num_classes=num_classes, pretrained=cfg.model_cfg.pretrained)
+    model = build_model(num_classes)
     model.to(cfg.device)
 
     ema_model = ModelEMA(model, decay=cfg.model_cfg.ema_decay, device=cfg.device)
@@ -196,8 +234,21 @@ def run_training():
     total_steps = len(train_loader) * cfg.epochs
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=total_steps, eta_min=cfg.min_lr)
 
-    print(f"Configurando Mixup: Prob={cfg.mixup_prob}, Alpha={cfg.mixup_alpha}")
-    mixup_fn = Mixup(mixup_prob=cfg.mixup_prob, alpha=cfg.mixup_alpha)
+    mixup_warmup = getattr(cfg, 'mixup_warmup_epochs', 0)
+    mixup_cutmix = getattr(cfg, 'mixup_cutmix_prob', 0.0)
+    mixup_force_dom = getattr(cfg, 'mixup_force_dominant', False)
+    print(
+        f"Configurando Mixup: Prob={cfg.mixup_prob}, Alpha={cfg.mixup_alpha}, "
+        f"CutMix(t)={mixup_cutmix}, Warmup={mixup_warmup}, ForceDominant={mixup_force_dom}, "
+        f"PseudoSoft={getattr(cfg, 'pseudo_use_soft_labels', False)}"
+    )
+    mixup_fn = Mixup(
+        mixup_prob=cfg.mixup_prob,
+        alpha=cfg.mixup_alpha,
+        cutmix_prob=mixup_cutmix,
+        warmup_epochs=mixup_warmup,
+        force_dominant=mixup_force_dom,
+    )
 
     wandb.init(
         project=cfg.project_name,
@@ -206,21 +257,27 @@ def run_training():
     )
     
     for epoch in range(cfg.epochs):
-        train_loss, pseudo_iter = train_one_epoch(
-            model, ema_model, train_loader, pseudo_loader, pseudo_iter, 
-            optimizer, scheduler, criterion, cfg.device, scaler, mixup_fn
+        train_loss, pseudo_iter, mix_frac, pseudo_mix_frac = train_one_epoch(
+            model, ema_model, train_loader, pseudo_loader, pseudo_iter,
+            optimizer, scheduler, criterion, cfg.device, scaler, mixup_fn,
+            epoch=epoch,
         )
 
         val_loss, val_auc = valid_one_epoch(ema_model.module, val_loader, criterion, cfg.device)
 
-        print(f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} AUC: {val_auc:.4f}")
+        print(
+            f"Epoch {epoch+1} | Train Loss: {train_loss:.4f} | Val Loss: {val_loss:.4f} "
+            f"AUC: {val_auc:.4f} | mix={mix_frac:.2f} (pseudo={pseudo_mix_frac:.2f})"
+        )
 
         wandb.log({
             "epoch": epoch+1,
             "train_loss": train_loss,
             "val_loss": val_loss,
             "val_auc": val_auc,
-            "lr": scheduler.get_last_lr()[0]
+            "lr": scheduler.get_last_lr()[0],
+            "mixup_active_frac": mix_frac,
+            "mixup_pseudo_frac": pseudo_mix_frac,
         })
 
         if epoch >= (cfg.epochs - cfg.epochs_to_save):

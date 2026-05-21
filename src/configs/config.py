@@ -5,7 +5,7 @@ import os
 cfg = SimpleNamespace(**{})
 
 cfg.project_name = "BirdCLEF2026_Pantanal"
-cfg.exp_name = "tf_efficientnet_b0_ns_pseudo_perch_plus_ground_balanced_run32"
+cfg.exp_name = "tf_efficientnet_b0_ns_SED_CRNN_30s_softmixup_cutmix_warmup_run01"
 cfg.num_workers = 0
 cfg.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 cfg.seed = 42
@@ -24,10 +24,10 @@ cfg.train_csv_path = os.path.join(cfg.dataset_root, "train.csv")
 cfg.taxonomy_csv_path = os.path.join(cfg.dataset_root, "taxonomy.csv")
 cfg.sample_submission_path = os.path.join(cfg.dataset_root, "sample_submission.csv")
 cfg.teacher_preds_path_raw = os.path.join(cfg.dataset_root, "val_soundscape.csv")
-cfg.pseudo_soundscape_labels_path_raw = os.path.join(cfg.dataset_root, "pseudos_perch_ground_full.csv")
+cfg.pseudo_soundscape_labels_path_raw = os.path.join(cfg.dataset_root, "pseudos_0.904_ensemble_ground.csv")
 
-cfg.teacher_preds_path = os.path.join(cfg.dataset_root, "pseudos_balanced_val.csv")
-cfg.pseudo_soundscape_labels_path = os.path.join(cfg.dataset_root, "pseudos_balanced_train.csv")
+cfg.teacher_preds_path = os.path.join(cfg.dataset_root, "val_soundscape.csv")
+cfg.pseudo_soundscape_labels_path = os.path.join(cfg.dataset_root, "pseudos_0.904_ensemble_ground.csv")
 cfg.classes_order_path = os.path.join(cfg.dataset_root, "classes_order.csv")
 cfg.val_processed_path = os.path.join(cfg.dataset_root, "val_processed.pkl")
 cfg.pseudo_processed_path = os.path.join(cfg.dataset_root, "pseudo_processed.pkl")
@@ -35,7 +35,10 @@ cfg.pseudo_processed_path = os.path.join(cfg.dataset_root, "pseudo_processed.pkl
 cfg.output_dir = "outputs/"
 cfg.sr = 32000
 cfg.duration = 5
+cfg.train_duration = 30
+cfg.train_step = 5
 cfg.step = 1
+
 cfg.n_mels = 224
 cfg.fmin = 0
 cfg.fmax = 16000
@@ -63,8 +66,11 @@ cfg.loss_gamma=2.0
 cfg.loss_bce_weight = 0.6
 cfg.loss_focal_weight = 1.4
 
-cfg.mixup_prob = 1
-cfg.mixup_alpha = 1.0
+cfg.mixup_prob = 0.75
+cfg.mixup_alpha = 0.5
+cfg.mixup_warmup_epochs = 5
+cfg.mixup_cutmix_prob = 0.3
+cfg.mixup_force_dominant = False
 
 cfg.spec_aug_time_mask = 0
 cfg.spec_aug_freq_mask = 0
@@ -78,6 +84,13 @@ model_cfg.model_name = "tf_efficientnet_b0_ns"
 model_cfg.pretrained = True
 model_cfg.num_classes = 0
 model_cfg.ema_decay = 0.999
+
+model_cfg.use_sed = True
+model_cfg.sed_use_gru = True
+model_cfg.sed_gru_hidden = 256
+model_cfg.sed_gru_layers = 2
+model_cfg.sed_gru_dropout = 0.2
+
 cfg.model_cfg = model_cfg
 
 cfg.apply_postprocess = False
@@ -99,3 +112,4 @@ cfg.train_enrichment_threshold = 0.65
 cfg.use_pseudo_labels = True
 cfg.pseudo_threshold = 0.5
 cfg.pseudo_mixup_ratio = 0.5
+cfg.pseudo_use_soft_labels = True

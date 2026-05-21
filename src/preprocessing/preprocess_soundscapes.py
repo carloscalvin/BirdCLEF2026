@@ -18,7 +18,10 @@ def preprocess_soundscapes(preds_path, preprocess_dir, processed_path, pseudo=Fa
     class_cols = [c for c in df.columns if c not in non_class_cols]
     class_cols = sorted(class_cols)
 
-    print(f"Detectadas {len(class_cols)} clases en validación.")
+    load_duration = getattr(cfg, 'train_duration', cfg.duration) if pseudo else cfg.duration
+
+    mode_label = "PSEUDO" if pseudo else "VALIDACIÓN"
+    print(f"Detectadas {len(class_cols)} clases. Modo {mode_label} — duración de carga: {load_duration} s.")
 
     pd.Series(class_cols).to_csv(cfg.classes_order_path, index=False, header=False)
 
@@ -60,7 +63,11 @@ def preprocess_soundscapes(preds_path, preprocess_dir, processed_path, pseudo=Fa
             continue
 
         try:
-            y, _ = librosa.load(audio_path, sr=cfg.sr, offset=start_seconds, duration=cfg.duration)
+            y, _ = librosa.load(audio_path, sr=cfg.sr, offset=start_seconds, duration=load_duration)
+            
+            expected_samples = int(cfg.sr * load_duration)
+            if len(y) < expected_samples:
+                y = np.pad(y, (0, expected_samples - len(y)), mode='constant')
             spec_arr = compute_melspec(y, cfg.sr)
 
             save_name = row_id + ".npy"

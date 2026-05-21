@@ -5,13 +5,23 @@ import ast
 from torch.utils.data import Dataset
 
 class BirdDataset(Dataset):
-    def __init__(self, df, root_dir, transform, mode='train', class_names=None, pseudo_threshold=None):
+    def __init__(
+        self,
+        df,
+        root_dir,
+        transform,
+        mode='train',
+        class_names=None,
+        pseudo_threshold=None,
+        pseudo_use_soft_labels=False,
+    ):
         self.root_dir = root_dir
         self.transform = transform
         self.mode = mode
-        
+
         self.class_names = class_names
         self.pseudo_threshold = pseudo_threshold
+        self.pseudo_use_soft_labels = bool(pseudo_use_soft_labels)
         self.class_to_idx = {label: idx for idx, label in enumerate(self.class_names)}
         self.num_classes = len(self.class_names)
 
@@ -61,7 +71,15 @@ class BirdDataset(Dataset):
             target = row['targets']
             if not isinstance(target, np.ndarray):
                 target = np.array(target)
-            target = (target >= self.pseudo_threshold).astype(np.float32)
+            target = target.astype(np.float32)
+            if self.pseudo_use_soft_labels:
+                # Soft labels en clases de confianza (>= threshold), cero en el resto.
+                # Esto evita inyectar ruido de clases con prob baja en el mixup
+                # pero preserva la incertidumbre del teacher en las clases activas.
+                mask = target >= self.pseudo_threshold
+                target = np.where(mask, target, 0.0).astype(np.float32)
+            else:
+                target = (target >= self.pseudo_threshold).astype(np.float32)
         else:
             row = self.df.iloc[idx]
             chunk_name = row['chunk_name']

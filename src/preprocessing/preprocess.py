@@ -27,32 +27,31 @@ def process_audio_file(row):
     filename_base = row['filename'].replace('/', '_').replace('.ogg', '')
     new_rows = []
 
+    chunk_secs = getattr(cfg, 'train_duration', cfg.duration)
+    step_secs  = getattr(cfg, 'train_step',     cfg.step)
+    samples_per_chunk = int(cfg.sr * chunk_secs)
+    samples_step      = int(cfg.sr * step_secs)
+
     try:
         y, _ = librosa.load(file_path, sr=cfg.sr)
         total_samples = len(y)
-        samples_per_chunk = int(cfg.sr * cfg.duration)
-        samples_step = int(cfg.sr * cfg.step)
         chunks = []
 
         if total_samples < samples_per_chunk:
             y_padded = np.pad(y, (0, samples_per_chunk - total_samples))
             chunks.append((y_padded, 0))
-
         else:
             chunk_idx = 0
             for start in range(0, total_samples - samples_per_chunk + 1, samples_step):
                 end = start + samples_per_chunk
-                chunk = y[start:end]
-                chunks.append((chunk, chunk_idx))
+                chunks.append((y[start:end], chunk_idx))
                 chunk_idx += 1
 
         for chunk_audio, idx in chunks:
             spec_arr = compute_melspec(chunk_audio, cfg.sr)
             save_name = f"{filename_base}_chunk{idx}.npy"
             save_path = os.path.join(cfg.preprocess_train_dir, save_name)
-
             np.save(save_path, spec_arr)
-
             new_rows.append({
                 'filename': row['filename'],
                 'chunk_name': save_name,
@@ -63,7 +62,7 @@ def process_audio_file(row):
     except Exception as e:
         print(f"Error procesando {file_path}: {e}")
         return []
-        
+
     return new_rows
 
 def run_preprocessing():
@@ -73,7 +72,9 @@ def run_preprocessing():
         df = df.head(50)
         print("Modo FAST RUN: Procesando solo 50 archivos.")
 
-    print(f"Procesando {len(df)} archivos de audio. Generando chunks de {cfg.duration}s...")
+    chunk_secs = getattr(cfg, 'train_duration', cfg.duration)
+    step_secs  = getattr(cfg, 'train_step',     cfg.step)
+    print(f"Procesando {len(df)} archivos de audio. Chunks de {chunk_secs}s, step {step_secs}s...")
     
     results = Parallel(n_jobs=-1)(
         delayed(process_audio_file)(row) 
